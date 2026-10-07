@@ -1,7 +1,7 @@
 import { Schema, model, Document } from 'mongoose';
 
 // Counter for gap-free invoice numbers — pre-created in migration 001
-export interface ICounter extends Document {
+export interface ICounter extends Document<string> {
   _id: string;  // e.g. "invoice-2026"
   seq: number;
 }

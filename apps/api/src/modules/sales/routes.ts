@@ -44,7 +44,7 @@ router.get('/', allRoles, async (req, res, next) => {
       const obj = s.toObject();
       if (user.role !== 'owner') {
         obj.items = obj.items.map((i: any) => { delete i.costSnapshot; return i; });
-        delete obj.cashPaid; // keep only what cashier needs
+        delete (obj as any).cashPaid; // keep only what cashier needs
       }
       return obj;
     });

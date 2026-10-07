@@ -130,15 +130,16 @@ router.patch('/:id', managerOrOwner, async (req: AuthRequest, res, next) => {
     const med = await Medicine.findById(req.params.id);
     if (!med) throw new AppError('NOT_FOUND', 404, 'Medicine not found');
 
+    const update: Record<string, unknown> = { ...body };
     if (body.name || body.genericName || body.company) {
-      body.searchTokens = generateSearchTokens(
+      update.searchTokens = generateSearchTokens(
         body.name ?? med.name,
         body.genericName ?? med.genericName,
         body.company ?? med.company ?? ''
       );
     }
 
-    Object.assign(med, body);
+    Object.assign(med, update);
     await med.save();
     res.json({ ok: true, data: med });
   } catch (err) { next(err); }

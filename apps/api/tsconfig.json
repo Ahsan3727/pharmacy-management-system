@@ -4,7 +4,6 @@
     "module": "CommonJS",
     "moduleResolution": "node",
     "outDir": "dist",
-    "rootDir": "src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,6 +12,6 @@
       "@hs-pharma/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "api", "../../packages/shared/src"],
   "exclude": ["node_modules", "dist"]
 }
