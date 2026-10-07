@@ -2,11 +2,8 @@ import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
 export const api = axios.create({
-  // In production (Vercel), VITE_API_URL = https://your-api.vercel.app
-  // In development, proxy via Vite (baseURL = '/api/v1')
-  baseURL: import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL}/api/v1`
-    : '/api/v1',
+  // Same origin — /api/* routes to Express in both dev (Vite proxy) and production (Vercel rewrite)
+  baseURL: '/api/v1',
   withCredentials: true,
 });
 

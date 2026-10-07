@@ -22,17 +22,13 @@ export const app = express();
 app.use(helmet());
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (curl, mobile apps, same-domain)
+    // Production (Vercel): same origin — no CORS needed
+    // Development: allow Vite dev server
     if (!origin) return callback(null, true);
-    const allowed = [
-      'http://localhost:5173',
-      'http://127.0.0.1:5173',
-      // Vercel production URL — set ALLOWED_ORIGIN in Vercel env vars
-      ...(process.env.ALLOWED_ORIGIN ? [process.env.ALLOWED_ORIGIN] : []),
-      // Allow any *.vercel.app subdomain (preview deployments)
-      ...(origin.endsWith('.vercel.app') ? [origin] : []),
-    ];
+    const allowed = ['http://localhost:5173', 'http://127.0.0.1:5173'];
     if (allowed.includes(origin)) return callback(null, true);
+    // Also allow any *.vercel.app for preview deployments
+    if (origin.endsWith('.vercel.app')) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
