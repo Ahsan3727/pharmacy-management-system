@@ -1,0 +1,17 @@
+{
+  "name": "hs-pharma",
+  "private": true,
+  "version": "1.0.0",
+  "description": "HS Pharma — Pharmacy Management System",
+  "scripts": {
+    "dev": "pnpm --parallel --filter=@hs-pharma/api --filter=@hs-pharma/web dev",
+    "build": "pnpm --filter=@hs-pharma/web build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
