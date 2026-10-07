@@ -1,20 +1,30 @@
 {
-  "buildCommand": "pnpm install --allow-build=esbuild && pnpm --filter=@hs-pharma/web build",
-  "outputDirectory": "apps/web/dist",
-  "installCommand": "pnpm install --allow-build=esbuild",
-  "functions": {
-    "apps/api/api/index.ts": {
-      "runtime": "@vercel/node@3"
-    }
-  },
-  "rewrites": [
+  "version": 2,
+  "builds": [
     {
-      "source": "/api/:path*",
-      "destination": "/apps/api/api/index.ts"
+      "src": "apps/api/api/index.ts",
+      "use": "@vercel/node"
     },
     {
-      "source": "/:path*",
-      "destination": "/index.html"
+      "src": "apps/web/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "buildCommand": "pnpm install --allow-build=esbuild && pnpm run build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "/apps/api/api/index.ts"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
