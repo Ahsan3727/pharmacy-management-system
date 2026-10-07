@@ -8,7 +8,6 @@ const EnvSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(16),
   ACCESS_TOKEN_TTL: z.string().default('15m'),
   REFRESH_TOKEN_TTL: z.string().default('30d'),
-  TZ: z.string().default('Asia/Karachi'),
 });
 
 // Parse and validate env — app refuses to start if anything is missing
