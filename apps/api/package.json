@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/server.ts",
     "build": "tsc",
+    "vercel-build": "echo 'no build needed for serverless'",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
