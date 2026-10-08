@@ -27,6 +27,26 @@ export function ClosingPage() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
+  // Cash note denominations calculator state
+  const [showDenomCalc, setShowDenomCalc] = useState(false);
+  const [denoms, setDenoms] = useState<Record<number, number>>({
+    5000: 0,
+    1000: 0,
+    500: 0,
+    100: 0,
+    50: 0,
+    20: 0,
+    10: 0,
+  });
+
+  const handleDenomChange = (noteVal: number, countStr: string) => {
+    const count = parseInt(countStr) || 0;
+    const next = { ...denoms, [noteVal]: count };
+    setDenoms(next);
+    const sum = Object.entries(next).reduce((acc, [val, cnt]) => acc + Number(val) * cnt, 0);
+    setCountedRupees(sum > 0 ? String(sum) : '');
+  };
+
   // Initialize opening cash from API suggestion
   useEffect(() => {
     if (status) {
@@ -159,6 +179,35 @@ export function ClosingPage() {
                   />
                 </label>
               </div>
+
+              {/* Denomination counter toggle */}
+              <div style={{ marginTop: 6, marginBottom: 8 }}>
+                <button
+                  type="button"
+                  className="lk"
+                  style={{ fontSize: 12.5 }}
+                  onClick={() => setShowDenomCalc((prev) => !prev)}
+                >
+                  {showDenomCalc ? '▼ Hide note denomination counter' : '▶ Count by physical currency notes (Rs 5000, 1000, 500…)'}
+                </button>
+              </div>
+
+              {showDenomCalc && (
+                <div className="denom-grid">
+                  {[5000, 1000, 500, 100, 50, 20, 10].map((noteVal) => (
+                    <div key={noteVal} className="denom-cell">
+                      <span>Rs {noteVal} notes:</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="0"
+                        value={denoms[noteVal] || ''}
+                        onChange={(e) => handleDenomChange(noteVal, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className="ln" style={{ marginTop: 10 }}>
                 <span className="mut">Cash sales today</span>

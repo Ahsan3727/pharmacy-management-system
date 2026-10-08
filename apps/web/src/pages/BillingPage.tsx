@@ -6,6 +6,7 @@ import { useAuthStore } from '../store/authStore';
 import { Modal, ModalHeader } from '../components/Modal';
 import { Toast, useToast } from '../components/Toast';
 import { fmt, fmtMmYy, fmtDate, fmtDateTime, daysUntil, expiryClass, newClientRequestId } from '../lib/fmt';
+import { sounds } from '../lib/sound';
 
 // ─── Medicine search ─────────────────────────────────────────────────────────
 
@@ -54,9 +55,9 @@ function MedicineSearch() {
       lineTotal,
       maxQty: batch.qtyOnHand,
     });
+    sounds.scan();
     setQ('');
     setResults([]);
-    setOpen(false);
     inputRef.current?.focus();
   };
 
@@ -167,15 +168,15 @@ function CartTable() {
                 </td>
                 <td>
                   <div className="qt">
-                    <button onClick={() => updateQty(i, item.qty - 1)}>−</button>
+                    <button onClick={() => { updateQty(i, item.qty - 1); sounds.step(); }}>−</button>
                     <input
                       type="number"
                       min={1}
                       max={item.maxQty}
                       value={item.qty}
-                      onChange={(e) => updateQty(i, parseInt(e.target.value) || 1)}
+                      onChange={(e) => { updateQty(i, parseInt(e.target.value) || 1); sounds.step(); }}
                     />
-                    <button onClick={() => updateQty(i, item.qty + 1)}>+</button>
+                    <button onClick={() => { updateQty(i, item.qty + 1); sounds.step(); }}>+</button>
                   </div>
                   <small>{item.packUnit}s: {Math.floor(item.qty / item.packSize)} + {item.qty % item.packSize} {item.looseUnit}s</small>
                 </td>
@@ -396,8 +397,10 @@ export function BillingPage() {
       setLastSaleId(sale._id);
       cart.clear();
       qc.invalidateQueries({ queryKey: ['customers'] });
+      sounds.success();
       showToast(`✅ Bill ${sale.invoiceNo} committed`);
     } catch (err: any) {
+      sounds.warn();
       setError(err.response?.data?.error?.message ?? 'Sale failed');
     } finally {
       setCommitting(false);

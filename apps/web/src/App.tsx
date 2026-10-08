@@ -1,4 +1,4 @@
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useAuthStore } from './store/authStore';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -10,6 +10,8 @@ import { StockPage } from './pages/StockPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
 import { RevenuePage } from './pages/RevenuePage';
 import { ClosingPage } from './pages/ClosingPage';
+import { CommandPalette } from './components/CommandPalette';
+import { sounds } from './lib/sound';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api';
 
@@ -62,12 +64,50 @@ function AlertChips() {
 
 function AppShell() {
   const [screen, setScreen] = useState<Screen>('billing');
+  const [isCmdOpen, setIsCmdOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => sounds.isEnabled());
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('hs_sidebar_collapsed') === 'true');
   const { user, logout } = useAuthStore();
+
   const { data: settings } = useQuery({
     queryKey: ['settings'],
     queryFn: async () => (await api.get('/settings')).data.data,
     staleTime: 300000,
   });
+
+  const { data: drawerClosing } = useQuery({
+    queryKey: ['closing', 'today'],
+    queryFn: async () => (await api.get('/closing/today')).data.data,
+    enabled: user?.role === 'owner' || user?.role === 'manager',
+    staleTime: 60000,
+  });
+
+  // Global Ctrl+K / Cmd+K listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCmdOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const toggleSidebar = () => {
+    setIsCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem('hs_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
+
+  const toggleSound = () => {
+    const next = !soundEnabled;
+    sounds.setEnabled(next);
+    setSoundEnabled(next);
+    if (next) sounds.scan();
+  };
 
   const navItems = NAV_ITEMS.filter((n) => user?.role && n.roles.includes(user.role));
 
@@ -86,16 +126,58 @@ function AppShell() {
   };
 
   return (
-    <div className="app">
+    <div className={`app ${isCollapsed ? 'collapsed-sidebar' : ''}`}>
       {/* Top bar */}
       <header className="top">
-        <div className="logo">
+        <div className="logo" style={{ cursor: 'pointer' }} onClick={() => setScreen('dashboard')}>
           <div className="logo-mark">💊</div>
-          {settings?.shopName ?? 'HS Pharma'}
+          <span>{settings?.shopName ?? 'HS Pharma'}</span>
         </div>
+
         <div className="shop-addr">{settings?.address}</div>
+
+        {/* Global Search / Command Palette Trigger */}
+        <button
+          type="button"
+          className="search-trigger-btn"
+          onClick={() => setIsCmdOpen(true)}
+          title="Search medicines or jump to screen (Ctrl+K)"
+        >
+          <span>🔍</span>
+          <span>Search or jump...</span>
+          <kbd style={{ fontSize: 10, padding: '1px 5px', background: 'rgba(255,255,255,0.18)', border: '0', color: '#fff' }}>
+            Ctrl+K
+          </kbd>
+        </button>
+
         <div className="spacer" />
+
+        {/* Live Drawer Cash Indicator (Manager / Owner) */}
+        {drawerClosing && (
+          <div
+            className="alert-chip"
+            style={{ background: 'rgba(255,255,255,0.14)', color: '#fff', cursor: 'pointer' }}
+            onClick={() => setScreen('closing')}
+            title="Click to view today's shift cash drawer"
+          >
+            💰 Drawer: Rs {(drawerClosing.cashSales / 100).toLocaleString('en-IN')}
+          </div>
+        )}
+
         <AlertChips />
+
+        {/* Sound FX toggle */}
+        <button
+          type="button"
+          onClick={toggleSound}
+          style={{ background: 'none', border: 0, color: soundEnabled ? '#64dbab' : '#888', cursor: 'pointer', fontSize: 15 }}
+          title={soundEnabled ? 'Scanner Audio Feedback Enabled' : 'Audio Muted'}
+          aria-label="Toggle scanner audio feedback"
+        >
+          {soundEnabled ? '🔊' : '🔇'}
+        </button>
+
+        {/* User Role Badge */}
         <div className="role-select">
           <span>{user?.name}</span>
           <span className="pill">{user?.role}</span>
@@ -107,6 +189,17 @@ function AppShell() {
 
       {/* Sidebar / bottom nav */}
       <nav className="nav" aria-label="Main navigation">
+        {/* Sidebar collapse button (desktop) */}
+        <button
+          type="button"
+          className="nav-toggle-btn ro"
+          onClick={toggleSidebar}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          <span>{isCollapsed ? '▶' : '◀'}</span>
+          <span className="nav-label">{isCollapsed ? '' : 'Collapse'}</span>
+        </button>
+
         {navItems.map((item) => (
           <button
             key={item.id}
@@ -114,9 +207,10 @@ function AppShell() {
             className={screen === item.id ? 'on' : ''}
             onClick={() => setScreen(item.id)}
             aria-current={screen === item.id ? 'page' : undefined}
+            title={item.label}
           >
             <span className="nav-icon">{item.icon}</span>
-            {item.label}
+            <span className="nav-label">{item.label}</span>
           </button>
         ))}
 
@@ -125,9 +219,10 @@ function AppShell() {
           onClick={logout}
           style={{ marginTop: 'auto' }}
           className="ro"
+          title="Logout"
         >
           <span className="nav-icon">🚪</span>
-          Logout
+          <span className="nav-label">Logout</span>
         </button>
       </nav>
 
@@ -142,10 +237,22 @@ function AppShell() {
       <footer className="fkb">
         <div className="fk">
           <span><kbd>F2</kbd>Search medicine</span>
-          <span><kbd>F9</kbd>Commit sale</span>
+          <span><kbd>Ctrl+K</kbd>Command palette</span>
+          <span><kbd>F8 / F9</kbd>Commit sale</span>
           <span><kbd>Esc</kbd>Close modal</span>
         </div>
       </footer>
+
+      {/* Global Command Palette */}
+      <CommandPalette
+        isOpen={isCmdOpen}
+        onClose={() => setIsCmdOpen(false)}
+        onNavigate={(screenId) => {
+          setScreen(screenId as Screen);
+          setIsCmdOpen(false);
+        }}
+        userRole={user?.role}
+      />
     </div>
   );
 }
