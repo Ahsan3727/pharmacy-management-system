@@ -8,22 +8,28 @@ import { PurchasesPage } from './pages/PurchasesPage';
 import { CustomersPage } from './pages/CustomersPage';
 import { StockPage } from './pages/StockPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
+import { RevenuePage } from './pages/RevenuePage';
+import { ClosingPage } from './pages/ClosingPage';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api';
 
 type Screen =
   | 'dashboard'
   | 'billing'
+  | 'sales'
+  | 'revenue'
+  | 'closing'
   | 'medicines'
   | 'purchases'
   | 'customers'
-  | 'stock'
-  | 'sales';
+  | 'stock';
 
 const NAV_ITEMS: Array<{ id: Screen; icon: string; label: string; roles: Array<'owner' | 'manager' | 'cashier'> }> = [
   { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['owner', 'manager', 'cashier'] },
   { id: 'billing', icon: '🏥', label: 'POS Billing', roles: ['owner', 'manager', 'cashier'] },
   { id: 'sales', icon: '🧾', label: 'Sales', roles: ['owner', 'manager', 'cashier'] },
+  { id: 'revenue', icon: '📈', label: 'Revenue', roles: ['owner', 'manager'] },
+  { id: 'closing', icon: '🔒', label: 'Day Closing', roles: ['owner', 'manager'] },
   { id: 'medicines', icon: '💊', label: 'Medicines', roles: ['owner', 'manager'] },
   { id: 'purchases', icon: '🛒', label: 'Purchases', roles: ['owner', 'manager'] },
   { id: 'customers', icon: '👤', label: 'Customers', roles: ['owner', 'manager', 'cashier'] },
@@ -69,11 +75,13 @@ function AppShell() {
     switch (screen) {
       case 'dashboard': return <DashboardPage />;
       case 'billing': return <BillingPage />;
+      case 'sales': return <SalesHistoryPage />;
+      case 'revenue': return <RevenuePage />;
+      case 'closing': return <ClosingPage />;
       case 'medicines': return <MedicinesPage />;
       case 'purchases': return <PurchasesPage />;
       case 'customers': return <CustomersPage />;
       case 'stock': return <StockPage />;
-      case 'sales': return <SalesHistoryPage />;
     }
   };
 

@@ -15,6 +15,9 @@ import customerRoutes from './modules/customers/routes';
 import supplierRoutes from './modules/suppliers/routes';
 import stockRoutes from './modules/stock/routes';
 import settingsRoutes from './modules/settings/routes';
+import expenseRoutes from './modules/expenses/routes';
+import revenueRoutes from './modules/revenue/routes';
+import closingRoutes from './modules/closing/routes';
 import { connectDB } from './config/db';
 
 export const app = express();
@@ -78,6 +81,9 @@ app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/suppliers', supplierRoutes);
 app.use('/api/v1/stock', stockRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/expenses', expenseRoutes);
+app.use('/api/v1/revenue', revenueRoutes);
+app.use('/api/v1/closing', closingRoutes);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

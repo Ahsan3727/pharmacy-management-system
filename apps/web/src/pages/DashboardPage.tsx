@@ -3,14 +3,17 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
 import { fmt, fmtDate, fmtDateTime, daysUntil, expiryClass } from '../lib/fmt';
+import { fetchRevenueSummary } from '../lib/revenueApi';
 
 export function DashboardPage() {
-  const [dateFrom] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    return d.toISOString().slice(0, 10);
-  });
   const { user } = useAuthStore();
+  const todayIso = new Date().toISOString().slice(0, 10);
+
+  const { data: todayRev } = useQuery({
+    queryKey: ['revenue', 'summary', todayIso, todayIso],
+    queryFn: () => fetchRevenueSummary(todayIso, todayIso),
+    staleTime: 30000,
+  });
 
   const { data: salesData } = useQuery({
     queryKey: ['sales', 'recent'],
@@ -37,31 +40,47 @@ export function DashboardPage() {
   });
 
   const recentSales = salesData?.sales ?? [];
-  const todaySales = recentSales.filter((s: any) =>
-    new Date(s.createdAt).toDateString() === new Date().toDateString()
-  );
-  const todayTotal = todaySales.reduce((a: number, s: any) => a + s.total, 0);
-  const todayCount = todaySales.length;
   const totalUdhaar = (customers ?? []).reduce((a: number, c: any) => a + c.balance, 0);
+
+  const todayTotal = todayRev?.revenue ?? 0;
+  const todayBills = todayRev?.billCount ?? 0;
+  const todayAvg = todayRev?.avgBillValue ?? 0;
+  const todayProfit = todayRev?.grossProfit ?? 0;
+  const cashPaid = todayRev?.cashCollected ?? 0;
+  const cardPaid = todayRev?.cardCollected ?? 0;
+  const udhaarGiven = todayRev?.udhaarGiven ?? 0;
+  const payTotal = todayTotal || 1;
 
   return (
     <div className="main in" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <h3>📊 Dashboard</h3>
 
+      {/* Top row */}
+      <div className="two">
+        <div className="card">
+          <small>Today's sales</small>
+          <div className="tot">{fmt(todayTotal)}</div>
+          <small>
+            {todayBills} bills · average {fmt(todayAvg)}
+            {user?.role === 'owner' ? ` · profit ${fmt(todayProfit)}` : ''}
+          </small>
+          <div className="sb" style={{ margin: '8px 0' }}>
+            <i style={{ width: `${(cashPaid / payTotal) * 100}%`, background: 'var(--br)' }} />
+            <i style={{ width: `${(cardPaid / payTotal) * 100}%`, background: '#2a7fb8' }} />
+            <i style={{ width: `${(udhaarGiven / payTotal) * 100}%`, background: '#e8730c' }} />
+          </div>
+          <small>Cash {fmt(cashPaid)} · Card {fmt(cardPaid)} · Udhaar {fmt(udhaarGiven)}</small>
+        </div>
+
+        <div className="card">
+          <small>Udhaar outstanding</small>
+          <div className="tot">{fmt(totalUdhaar)}</div>
+          <small>{customers?.length ?? 0} customers owe money</small>
+        </div>
+      </div>
+
       {/* KPI cards */}
       <div className="kp">
-        <div className="k s">
-          <small>Today's Sales</small>
-          <b>{fmt(todayTotal)}</b>
-          <small>{todayCount} bills</small>
-        </div>
-        {user?.role === 'owner' && (
-          <div className="k s">
-            <small>Total Udhaar</small>
-            <b>{fmt(totalUdhaar)}</b>
-            <small>{customers?.length ?? 0} customers</small>
-          </div>
-        )}
         <div className={`k s ${lowStock && lowStock.length > 0 ? 'wn' : ''}`}>
           <small>Low Stock</small>
           <b>{lowStock?.length ?? 0}</b>
@@ -71,6 +90,16 @@ export function DashboardPage() {
           <small>Near Expiry</small>
           <b>{nearExpiry?.length ?? 0}</b>
           <small>batches</small>
+        </div>
+        <div className="k s">
+          <small>Cash Collected Today</small>
+          <b>{fmt(cashPaid)}</b>
+          <small>at register</small>
+        </div>
+        <div className="k s">
+          <small>Bills Today</small>
+          <b>{todayBills}</b>
+          <small>invoices</small>
         </div>
       </div>
 
