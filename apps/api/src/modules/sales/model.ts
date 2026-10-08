@@ -12,6 +12,7 @@ export interface ISaleItem {
   packPrice: number;      // sale price per pack at time of sale (paisa)
   lineTotal: number;      // paisa
   costSnapshot: number;   // purchase price per pack at time of sale (paisa)
+  returnedQty?: number;   // base units returned so far
 }
 
 export interface ISale extends Document {
@@ -53,6 +54,7 @@ const SaleItemSchema = new Schema<ISaleItem>(
     packPrice: { type: Number, required: true, min: 0 },
     lineTotal: { type: Number, required: true, min: 0 },
     costSnapshot: { type: Number, required: true, min: 0 },
+    returnedQty: { type: Number, default: 0, min: 0 },
   },
   { _id: false }
 );

@@ -21,9 +21,10 @@ export function expiryToDate(mmyy: string): string {
   return d.toISOString().slice(0, 10);
 }
 
-/** Format date for display: YYYY-MM-DD → DD/MM/YY */
-export const formatDate = (iso: string): string => {
-  const [y, m, d] = iso.split('-');
+/** Format date for display: YYYY-MM-DD or Date → DD/MM/YY */
+export const formatDate = (iso: string | Date): string => {
+  const str = typeof iso === 'string' ? iso.slice(0, 10) : iso.toISOString().slice(0, 10);
+  const [y, m, d] = str.split('-');
   return `${d}/${m}/${y.slice(2)}`;
 };
 

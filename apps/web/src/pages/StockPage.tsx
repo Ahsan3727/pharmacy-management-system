@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { fmt, fmtMmYy, daysUntil, expiryClass } from '../lib/fmt';
+import { SupplierReturnModal } from '../components/SupplierReturnModal';
 
 export function StockPage() {
   const [tab, setTab] = useState<'low' | 'expiry' | 'expired'>('expiry');
+  const [returnTarget, setReturnTarget] = useState<{ batch: any; medicine: any } | null>(null);
 
   const { data: lowStock, isLoading: loadingLow } = useQuery({
     queryKey: ['stock', 'low'],
@@ -62,13 +64,14 @@ export function StockPage() {
                 <th>Expiry</th>
                 <th className="r">Days Left</th>
                 <th className="r">Stock (units)</th>
+                <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
             <tbody>
               {loadingNear ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading…</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading…</td></tr>
               ) : (nearExpiry ?? []).length === 0 ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>✅ No batches expiring soon</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>✅ No batches expiring soon</td></tr>
               ) : (
                 (nearExpiry ?? []).map((b: any) => {
                   const days = daysUntil(b.expiryDate);
@@ -80,6 +83,16 @@ export function StockPage() {
                       <td>{fmtMmYy(b.expiryDate)}</td>
                       <td className="r"><span className={`pill ${cls}`}>{days}d</span></td>
                       <td className="r">{b.qtyOnHand}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ fontSize: 11, padding: '3px 8px' }}
+                          title="Return stock to distributor"
+                          onClick={() => setReturnTarget({ batch: b, medicine: b.medicineId })}
+                        >
+                          ↩️ Return
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
@@ -149,10 +162,23 @@ export function StockPage() {
                     <td><span className="pill er">{fmtMmYy(b.expiryDate)}</span></td>
                     <td className="r">{b.qtyOnHand}</td>
                     <td>
-                      <button className="btn" style={{ fontSize: 11, padding: '4px 10px', background: 'var(--er)' }}
-                        onClick={() => handleWriteOff(b._id, b.medicineId?.name ?? b.batchNo)}>
-                        Write Off
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ fontSize: 11, padding: '4px 8px' }}
+                          title="Return to distributor for credit"
+                          onClick={() => setReturnTarget({ batch: b, medicine: b.medicineId })}
+                        >
+                          ↩️ Return
+                        </button>
+                        <button
+                          className="btn"
+                          style={{ fontSize: 11, padding: '4px 8px', background: 'var(--er)' }}
+                          onClick={() => handleWriteOff(b._id, b.medicineId?.name ?? b.batchNo)}
+                        >
+                          Write Off
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -160,6 +186,16 @@ export function StockPage() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {returnTarget && (
+        <SupplierReturnModal
+          batch={returnTarget.batch}
+          medicine={returnTarget.medicine}
+          open={!!returnTarget}
+          onClose={() => setReturnTarget(null)}
+          onSuccess={() => setReturnTarget(null)}
+        />
       )}
     </div>
   );

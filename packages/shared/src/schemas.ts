@@ -168,6 +168,23 @@ export const SaleReturnSchema = z.object({
   refundMethod: z.enum(['cash', 'udhaar_reduction']).default('cash'),
   reason: z.string().min(1),
 });
+export type SaleReturnSchema = z.infer<typeof SaleReturnSchema>;
+
+export const SupplierReturnItemSchema = z.object({
+  batchId: z.string(),
+  medicineId: z.string(),
+  packs: z.number().int().min(1),
+  unitCreditPricePerPack: z.number().int().min(0), // paisa
+  reason: z.enum(['near_expiry', 'expired', 'damaged', 'recall', 'excess_stock', 'other']).default('near_expiry'),
+});
+export type SupplierReturnItemSchema = z.infer<typeof SupplierReturnItemSchema>;
+
+export const CreateSupplierReturnSchema = z.object({
+  supplierId: z.string(),
+  items: z.array(SupplierReturnItemSchema).min(1),
+  note: z.string().optional(),
+});
+export type CreateSupplierReturnSchema = z.infer<typeof CreateSupplierReturnSchema>;
 
 // ─── Stock ───────────────────────────────────────────────────────────────────
 

@@ -13,5 +13,5 @@
     }
   },
   "include": ["src", "api", "../../packages/shared/src"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/scripts/testPhase2.ts", "src/scripts/testOpeningStock.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "src/scripts/testPhase2.ts", "src/scripts/testOpeningStock.ts", "src/scripts/testReturns.ts"]
 }

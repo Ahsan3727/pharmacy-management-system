@@ -145,54 +145,137 @@ function AddPurchaseModal({ open, onClose }: { open: boolean; onClose: () => voi
 }
 
 export function PurchasesPage() {
+  const [tab, setTab] = useState<'purchases' | 'debitNotes'>('purchases');
   const [addOpen, setAddOpen] = useState(false);
   const { toast, show: showToast } = useToast();
 
   const { data, isLoading } = useQuery({
     queryKey: ['purchases'],
     queryFn: async () => (await api.get('/purchases')).data.data,
+    enabled: tab === 'purchases',
+    staleTime: 30000,
+  });
+
+  const { data: debitData, isLoading: loadingDebits } = useQuery({
+    queryKey: ['returns', 'supplier'],
+    queryFn: async () => (await api.get('/returns/supplier')).data.data,
+    enabled: tab === 'debitNotes',
     staleTime: 30000,
   });
 
   const purchases: any[] = data?.items ?? [];
+  const debitNotes: any[] = debitData?.items ?? [];
+
+  const handlePrintDebit = (id: string) => {
+    const w = window.open(`/api/v1/returns/supplier/${id}/print`, '_blank', 'width=800,height=700');
+    w?.addEventListener('load', () => w.print());
+  };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3>🛒 Purchase Entry</h3>
-        <button className="btn" onClick={() => setAddOpen(true)}>+ New Purchase</button>
+        <div>
+          <h3 style={{ margin: 0 }}>🛒 Purchases & Vendor Debit Notes</h3>
+          <small style={{ color: 'var(--mut)' }}>Stock intake invoices, vendor accounts payable, and return debit notes</small>
+        </div>
+        {tab === 'purchases' && (
+          <button className="btn" onClick={() => setAddOpen(true)}>+ New Purchase</button>
+        )}
       </div>
 
-      <div className="gw">
-        <table className="gt">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Supplier</th>
-              <th>Invoice No</th>
-              <th>Lines</th>
-              <th className="r">Total Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {isLoading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading…</td></tr>
-            ) : purchases.length === 0 ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>No purchases yet</td></tr>
-            ) : (
-              purchases.map((p) => (
-                <tr key={p._id}>
-                  <td style={{ fontSize: 12 }}>{fmtDate(p.invoiceDate ?? p.createdAt)}</td>
-                  <td><b>{(p.supplierId as any)?.name ?? '–'}</b></td>
-                  <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.supplierInvoiceNo}</td>
-                  <td>{p.lines?.length} items</td>
-                  <td className="r">{fmt(p.totalAmount)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* Segmented Tab Bar */}
+      <div className="seg" style={{ marginBottom: 14, width: 'fit-content' }}>
+        <button className={tab === 'purchases' ? 'on' : ''} onClick={() => setTab('purchases')}>
+          📦 Purchase Invoices
+        </button>
+        <button className={tab === 'debitNotes' ? 'on' : ''} onClick={() => setTab('debitNotes')}>
+          📝 Vendor Debit Notes {debitData?.total ? `(${debitData.total})` : ''}
+        </button>
       </div>
+
+      {tab === 'purchases' && (
+        <div className="gw">
+          <table className="gt">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Supplier</th>
+                <th>Invoice No</th>
+                <th>Lines</th>
+                <th className="r">Total Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading purchases…</td></tr>
+              ) : purchases.length === 0 ? (
+                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>No purchases yet</td></tr>
+              ) : (
+                purchases.map((p) => (
+                  <tr key={p._id}>
+                    <td style={{ fontSize: 12 }}>{fmtDate(p.invoiceDate ?? p.createdAt)}</td>
+                    <td><b>{(p.supplierId as any)?.name ?? '–'}</b></td>
+                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{p.supplierInvoiceNo}</td>
+                    <td>{p.lines?.length} items</td>
+                    <td className="r" style={{ fontWeight: 600 }}>{fmt(p.totalAmount)}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {tab === 'debitNotes' && (
+        <div className="gw">
+          <table className="gt">
+            <thead>
+              <tr>
+                <th>Debit Note #</th>
+                <th>Supplier</th>
+                <th>Items Returned</th>
+                <th className="r">Credit Amount</th>
+                <th>Date</th>
+                <th>Processed By</th>
+                <th style={{ textAlign: 'right' }}>Print</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingDebits ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading debit notes…</td></tr>
+              ) : debitNotes.length === 0 ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>No vendor debit notes generated yet.</td></tr>
+              ) : (
+                debitNotes.map((dn) => (
+                  <tr key={dn._id}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 700, color: 'var(--br, #38bdf8)' }}>{dn.debitNoteNo}</td>
+                    <td><b>{dn.supplierName}</b></td>
+                    <td>
+                      <span style={{ fontSize: 12 }}>
+                        {dn.items?.map((i: any) => `${i.medicineName} (${i.packs} pk)`).join(', ')}
+                      </span>
+                    </td>
+                    <td className="r" style={{ fontWeight: 700, color: 'var(--ok, #22c55e)' }}>
+                      {fmt(dn.totalCreditAmount)}
+                    </td>
+                    <td style={{ fontSize: 12 }}>{fmtDate(dn.createdAt)}</td>
+                    <td style={{ color: 'var(--mut)', fontSize: 12 }}>{dn.processedByName}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: '3px 8px', fontSize: 11 }}
+                        onClick={() => handlePrintDebit(dn._id)}
+                      >
+                        🖨️ Voucher
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <AddPurchaseModal open={addOpen} onClose={() => setAddOpen(false)} />
       <Toast message={toast.message} visible={toast.visible} />

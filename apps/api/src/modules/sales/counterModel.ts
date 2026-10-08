@@ -24,3 +24,27 @@ export async function nextInvoiceNo(session: any): Promise<string> {
   );
   return `INV-${year}-${String(doc!.seq).padStart(6, '0')}`;
 }
+
+/** Generate next gap-free customer return number within a MongoDB transaction */
+export async function nextReturnNo(session: any): Promise<string> {
+  const year = new Date().getFullYear();
+  const key = `return-${year}`;
+  const doc = await Counter.findByIdAndUpdate(
+    key,
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, session }
+  );
+  return `RET-${year}-${String(doc!.seq).padStart(6, '0')}`;
+}
+
+/** Generate next gap-free supplier debit note number within a MongoDB transaction */
+export async function nextDebitNoteNo(session: any): Promise<string> {
+  const year = new Date().getFullYear();
+  const key = `debitnote-${year}`;
+  const doc = await Counter.findByIdAndUpdate(
+    key,
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, session }
+  );
+  return `DN-${year}-${String(doc!.seq).padStart(6, '0')}`;
+}
