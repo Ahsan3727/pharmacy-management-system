@@ -30,4 +30,5 @@ describe('Financial Math & Paisa Integer Engine', () => {
     expect(formatMoney(150000)).toBe('Rs 1,500.00');
     expect(formatMoney(50)).toBe('Rs 0.50');
   });
+
 });
