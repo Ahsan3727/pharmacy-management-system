@@ -6,6 +6,10 @@ export interface IMedicine extends Document {
   strength?: string;
   form?: string;
   company?: string;
+  category?: string;
+  storageCondition?: string;
+  prescriptionType?: string;
+  gstRateBP?: number;
   packSize: number;
   packsPerBox: number;
   looseUnit: string;
@@ -31,6 +35,10 @@ const MedicineSchema = new Schema<IMedicine>(
     strength: String,
     form: String,
     company: String,
+    category: { type: String, default: 'General & Other' },
+    storageCondition: { type: String, default: 'room_temperature' },
+    prescriptionType: { type: String, default: 'otc' },
+    gstRateBP: { type: Number, default: 0, min: 0 },
     packSize: { type: Number, required: true, min: 1 },
     packsPerBox: { type: Number, default: 1, min: 1 },
     looseUnit: { type: String, default: 'tab' },
@@ -51,16 +59,22 @@ const MedicineSchema = new Schema<IMedicine>(
 // Indexes
 MedicineSchema.index({ searchTokens: 1 });
 MedicineSchema.index({ genericName: 1 });
+MedicineSchema.index({ category: 1 });
+MedicineSchema.index({ storageCondition: 1 });
 MedicineSchema.index({ isActive: 1 });
 
-/** Generate lowercase word tokens from name, genericName, company for fast prefix search */
+/** Generate lowercase word tokens from name, genericName, company, category for fast prefix search */
 export function generateSearchTokens(
   name: string,
   genericName: string,
-  company = ''
+  company = '',
+  category = ''
 ): string[] {
-  const text = `${name} ${genericName} ${company}`.toLowerCase();
-  return [...new Set(text.split(/[^a-z0-9]+/).filter(Boolean))];
+  const text = `${name} ${genericName} ${company} ${category}`.toLowerCase();
+  const tokens = text.split(/[^a-z0-9]+/).filter(Boolean);
+  const stripped = name.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (stripped) tokens.push(stripped);
+  return [...new Set(tokens)];
 }
 
 export const Medicine = model<IMedicine>('Medicine', MedicineSchema);

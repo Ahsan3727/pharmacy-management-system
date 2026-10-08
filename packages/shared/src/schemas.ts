@@ -29,12 +29,57 @@ export const CreateUserSchema = z.object({
 export const LooseUnit = z.enum(['tab', 'cap', 'ml', 'pc', 'sachet', 'amp', 'vial']);
 export const PackUnit = z.enum(['strip', 'bottle', 'tube', 'pack', 'box', 'vial']);
 
+export const MedicineCategory = z.enum([
+  'Antibiotics & Anti-infectives',
+  'Cardiovascular & Antihypertensives',
+  'Analgesics & Pain Relief (NSAIDs)',
+  'Gastrointestinal & Antacids',
+  'Antidiabetic & Endocrinology',
+  'Respiratory & Anti-allergic',
+  'Dermatology & Topicals',
+  'Neurology & Psychiatric',
+  'Vitamins, Minerals & Supplements',
+  'Ophthalmic & Otic (Eye/Ear)',
+  'Women Health & Hormones',
+  'Medical Devices & Surgical',
+  'General & Other',
+]);
+export type MedicineCategory = z.infer<typeof MedicineCategory>;
+
+export const StorageCondition = z.enum([
+  'room_temperature',   // 15°C – 25°C
+  'cold_chain_2_8',     // 2°C – 8°C Refrigerator (Insulin, Vaccines, Eye Drops)
+  'cool_below_20',      // Cool dry place below 20°C
+  'protect_from_light', // Amber glass / foil protected
+]);
+export type StorageCondition = z.infer<typeof StorageCondition>;
+
+export const PrescriptionType = z.enum([
+  'otc',                // Over The Counter
+  'rx_general',         // Prescription Required
+  'controlled_narcotic',// Schedule B / D Narcotic / Benzodiazepines
+]);
+export type PrescriptionType = z.infer<typeof PrescriptionType>;
+
+export const OpeningStockSchema = z.object({
+  batchNo: z.string().min(1).toUpperCase(),
+  expiry: z.string().regex(/^(0[1-9]|1[0-2])\/\d{2}$/, 'Must be MM/YY'),
+  packs: z.number().int().min(1),
+  purchasePricePerPack: z.number().int().min(0), // paisa
+  salePricePerPack: z.number().int().min(0),     // paisa
+  mrpPerPack: z.number().int().min(0).optional(),
+});
+export type OpeningStockSchema = z.infer<typeof OpeningStockSchema>;
+
 export const CreateMedicineSchema = z.object({
   name: z.string().min(1).max(200),
   genericName: z.string().min(1).max(200),
   strength: z.string().max(100).optional(),
   form: z.string().max(100).optional(),
   company: z.string().max(200).optional(),
+  category: MedicineCategory.default('General & Other'),
+  storageCondition: StorageCondition.default('room_temperature'),
+  prescriptionType: PrescriptionType.default('otc'),
   packSize: z.number().int().min(1),        // units per pack
   packsPerBox: z.number().int().min(1).default(1),
   looseUnit: LooseUnit.default('tab'),
@@ -43,10 +88,12 @@ export const CreateMedicineSchema = z.object({
   rack: z.string().max(50).optional(),
   barcodes: z.array(z.string()).default([]),
   isControlled: z.boolean().default(false),
+  gstRateBP: z.number().int().min(0).max(3000).default(0), // basis points (0% to 30%)
   // Pricing (owner only) — stored in paisa
   purchasePricePerPack: z.number().int().min(0).optional(),
   salePricePerPack: z.number().int().min(0).optional(),
   mrpPerPack: z.number().int().min(0).optional(),
+  openingStock: OpeningStockSchema.optional(),
 });
 
 // ─── Suppliers ───────────────────────────────────────────────────────────────

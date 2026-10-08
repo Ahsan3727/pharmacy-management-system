@@ -13,6 +13,8 @@ interface CartItem {
   packPrice: number; // sale price per pack in paisa
   lineTotal: number; // paisa
   maxQty: number; // available stock
+  storageCondition?: string;
+  prescriptionType?: string;
 }
 
 interface CartState {

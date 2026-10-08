@@ -54,6 +54,8 @@ function MedicineSearch() {
       packPrice: batch.salePricePerPack,
       lineTotal,
       maxQty: batch.qtyOnHand,
+      storageCondition: med.storageCondition,
+      prescriptionType: med.prescriptionType ?? (med.isControlled ? 'controlled_narcotic' : 'otc'),
     });
     sounds.scan();
     setQ('');
@@ -86,13 +88,23 @@ function MedicineSearch() {
                 style={{ padding: '8px 12px', opacity: med.totalStock === 0 ? 0.5 : 1 }}
                 onClick={() => med.batches?.[0] && select(med, med.batches[0])}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ fontWeight: 600 }}>{med.name}{med.strength ? ` ${med.strength}` : ''}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600 }}>{med.name}{med.strength ? ` ${med.strength}` : ''}</span>
+                    {med.storageCondition === 'cold_chain_2_8' && (
+                      <span className="pill" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', fontSize: 10, fontWeight: 700 }}>
+                        ❄️ 2–8°C
+                      </span>
+                    )}
+                    {(med.prescriptionType === 'controlled_narcotic' || med.isControlled) && (
+                      <span className="pill wn" style={{ fontSize: 10, fontWeight: 700 }}>Rx</span>
+                    )}
+                  </div>
                   <span style={{ color: 'var(--mut)', fontSize: 12 }}>
                     {med.totalStock} {med.looseUnit}s · Rack {med.rack ?? '–'}
                   </span>
                 </div>
-                <small>{med.genericName} · {med.company}</small>
+                <small>{med.genericName} · {med.company}{med.category ? ` · ${med.category}` : ''}</small>
               </div>
               {/* Batch selector if multiple */}
               {med.batches?.length > 1 && (
@@ -160,7 +172,21 @@ function CartTable() {
             return (
               <tr key={`${item.medicineId}-${item.batchId}-${i}`}>
                 <td>
-                  <div style={{ fontWeight: 600 }}>{item.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={{ fontWeight: 600 }}>{item.name}</span>
+                    {item.storageCondition === 'cold_chain_2_8' && (
+                      <span
+                        className="pill"
+                        title="Store in refrigerator (2–8°C) - Dispense in cold pack"
+                        style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#0284c7', fontSize: 10, fontWeight: 700, padding: '2px 6px' }}
+                      >
+                        ❄️ 2–8°C
+                      </span>
+                    )}
+                    {item.prescriptionType === 'controlled_narcotic' && (
+                      <span className="pill wn" style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>Rx</span>
+                    )}
+                  </div>
                   <small>
                     {item.batchNo} · exp {fmtMmYy(item.expiryDate)}
                     {cls !== 'ok' && <span className={`pill ${cls}`} style={{ marginLeft: 6 }}>{days < 0 ? 'Expired' : `${days}d`}</span>}
