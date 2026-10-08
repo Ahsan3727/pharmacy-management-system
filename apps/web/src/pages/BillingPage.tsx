@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import { useCartStore } from '../store/cartStore';
 import { useAuthStore } from '../store/authStore';
 import { Modal, ModalHeader } from '../components/Modal';
+import { NarcoticModal } from '../components/NarcoticModal';
 import { Toast, useToast } from '../components/Toast';
 import { fmt, fmtMmYy, fmtDate, fmtDateTime, daysUntil, expiryClass, newClientRequestId } from '../lib/fmt';
 import { sounds } from '../lib/sound';
@@ -184,7 +185,13 @@ function CartTable() {
                       </span>
                     )}
                     {item.prescriptionType === 'controlled_narcotic' && (
-                      <span className="pill wn" style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px' }}>Rx</span>
+                      <span
+                        className="pill wn"
+                        title="Form-9 Controlled Substance - Prescriber PMDC and Patient CNIC required"
+                        style={{ fontSize: 10, fontWeight: 700, padding: '2px 6px', background: 'rgba(239, 68, 68, 0.15)', color: '#dc2626' }}
+                      >
+                        ⚠️ Form-9 Rx
+                      </span>
                     )}
                   </div>
                   <small>
@@ -390,6 +397,7 @@ export function BillingPage() {
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
   const [committing, setCommitting] = useState(false);
   const [error, setError] = useState('');
+  const [narcoticModalOpen, setNarcoticModalOpen] = useState(false);
 
   // Keyboard shortcut: F9 = commit
   useEffect(() => {
@@ -400,7 +408,7 @@ export function BillingPage() {
     return () => window.removeEventListener('keydown', handler);
   });
 
-  const handleCommit = async () => {
+  const executeCommit = async (narcoticDetails?: any) => {
     if (cart.items.length === 0 || committing) return;
     setError('');
     setCommitting(true);
@@ -418,10 +426,12 @@ export function BillingPage() {
         cashPaid: cart.cashPaid,
         cardPaid: cart.cardPaid,
         prescription: cart.prescription || undefined,
+        narcoticDetails: narcoticDetails || undefined,
       });
       const sale = res.data.data;
       setLastSaleId(sale._id);
       cart.clear();
+      setNarcoticModalOpen(false);
       qc.invalidateQueries({ queryKey: ['customers'] });
       sounds.success();
       showToast(`✅ Bill ${sale.invoiceNo} committed`);
@@ -431,6 +441,16 @@ export function BillingPage() {
     } finally {
       setCommitting(false);
     }
+  };
+
+  const handleCommit = () => {
+    if (cart.items.length === 0 || committing) return;
+    const hasNarcotic = cart.items.some((i) => i.prescriptionType === 'controlled_narcotic');
+    if (hasNarcotic) {
+      setNarcoticModalOpen(true);
+      return;
+    }
+    executeCommit();
   };
 
   return (
@@ -455,6 +475,17 @@ export function BillingPage() {
       <BillingFooter onCommit={handleCommit} />
 
       <BillModal saleId={lastSaleId} onClose={() => setLastSaleId(null)} />
+
+      <NarcoticModal
+        open={narcoticModalOpen}
+        onClose={() => setNarcoticModalOpen(false)}
+        defaultPatientName={cart.customerName ?? ''}
+        controlledItems={cart.items
+          .filter((i) => i.prescriptionType === 'controlled_narcotic')
+          .map((i) => i.name)}
+        onConfirm={(details) => executeCommit(details)}
+      />
+
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   );

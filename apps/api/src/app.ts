@@ -19,6 +19,7 @@ import expenseRoutes from './modules/expenses/routes';
 import revenueRoutes from './modules/revenue/routes';
 import closingRoutes from './modules/closing/routes';
 import returnsRoutes from './modules/returns/routes';
+import regulatoryRoutes from './modules/regulatory/routes';
 import { connectDB } from './config/db';
 
 export const app = express();
@@ -86,6 +87,7 @@ app.use('/api/v1/expenses', expenseRoutes);
 app.use('/api/v1/revenue', revenueRoutes);
 app.use('/api/v1/closing', closingRoutes);
 app.use('/api/v1/returns', returnsRoutes);
+app.use('/api/v1/regulatory', regulatoryRoutes);
 
 // ─── 404 ─────────────────────────────────────────────────────────────────────
 app.use((req, res) => {

@@ -136,6 +136,16 @@ export const SaleItemSchema = z.object({
 export const PaymentMode = z.enum(['cash', 'card', 'credit', 'split']);
 export type PaymentMode = z.infer<typeof PaymentMode>;
 
+export const NarcoticDetailsSchema = z.object({
+  doctorName: z.string().min(1),
+  doctorRegNo: z.string().min(1), // PMDC / Medical Council #
+  patientCnic: z.string().min(5), // National ID / CNIC
+  patientName: z.string().min(1),
+  prescriptionDate: z.string().optional(),
+  prescriptionSlipNo: z.string().optional(),
+});
+export type NarcoticDetailsSchema = z.infer<typeof NarcoticDetailsSchema>;
+
 export const CreateSaleSchema = z.object({
   clientRequestId: z.string().uuid(),
   customerId: z.string().optional(),
@@ -145,6 +155,7 @@ export const CreateSaleSchema = z.object({
   cashPaid: z.number().int().min(0).default(0),   // paisa
   cardPaid: z.number().int().min(0).default(0),   // paisa
   prescription: z.string().optional(),
+  narcoticDetails: NarcoticDetailsSchema.optional(),
 });
 
 // ─── Customers ───────────────────────────────────────────────────────────────
@@ -240,3 +251,25 @@ export const UpdateSettingsSchema = z.object({
   managerMaxDiscountBP: z.number().int().min(0).max(10000).optional(),
   managerPin: z.string().length(4).regex(/^\d+$/).optional(),
 });
+
+// ─── Stock Audits (Cycle Count) ──────────────────────────────────────────────
+
+export const AuditItemInputSchema = z.object({
+  medicineId: z.string(),
+  batchId: z.string(),
+  medicineName: z.string(),
+  batchNo: z.string(),
+  systemQty: z.number().int().min(0),
+  countedQty: z.number().int().min(0),
+  unitCost: z.number().int().min(0),
+});
+export type AuditItemInput = z.infer<typeof AuditItemInputSchema>;
+
+export const CreateStockAuditSchema = z.object({
+  rack: z.string().optional(),
+  category: z.string().optional(),
+  items: z.array(AuditItemInputSchema).min(1),
+  notes: z.string().optional(),
+});
+export type CreateStockAuditInput = z.infer<typeof CreateStockAuditSchema>;
+

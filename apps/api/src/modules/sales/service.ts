@@ -254,9 +254,9 @@ export async function createSale(
 
     // 5. Controlled drug check
     const meds = await Medicine.find({ _id: { $in: lines.map(l => l.medicineId) } }).session(session);
-    const hasControlled = meds.some(m => m.isControlled);
-    if (hasControlled && !(input.prescription?.trim())) {
-      throw new AppError('PRESCRIPTION_REQUIRED', 400, 'Controlled drug: prescription/doctor name required');
+    const hasControlled = meds.some(m => m.isControlled || m.prescriptionType === 'controlled_narcotic');
+    if (hasControlled && !(input.prescription?.trim() || input.narcoticDetails)) {
+      throw new AppError('PRESCRIPTION_REQUIRED', 400, 'Controlled drug: prescription/doctor details required (Form-9)');
     }
 
     // 6. Gap-free invoice number
@@ -295,7 +295,8 @@ export async function createSale(
         ...totals,
         soldBy: user._id,
         soldByName: user.name,
-        prescription: input.prescription,
+        prescription: input.prescription ?? (input.narcoticDetails ? `Dr. ${input.narcoticDetails.doctorName} (PMDC: ${input.narcoticDetails.doctorRegNo})` : undefined),
+        narcoticDetails: input.narcoticDetails,
         customerBalanceBefore: balBefore,
         customerBalanceAfter: customer ? balBefore + totals.creditAmount : undefined,
       }],

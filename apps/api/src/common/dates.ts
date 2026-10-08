@@ -28,6 +28,15 @@ export const formatDate = (iso: string | Date): string => {
   return `${d}/${m}/${y.slice(2)}`;
 };
 
+/** Format date and time for display: ISO or Date → DD/MM/YY HH:MM */
+export const formatDateTime = (iso: string | Date): string => {
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  const dateStr = formatDate(d);
+  const hours = String(d.getHours()).padStart(2, '0');
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  return `${dateStr} ${hours}:${minutes}`;
+};
+
 /** MM/YY display from ISO date string */
 export const formatMmYy = (iso: string | Date): string => {
   const d = typeof iso === 'string' ? iso : iso.toISOString();

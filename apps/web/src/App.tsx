@@ -10,6 +10,7 @@ import { StockPage } from './pages/StockPage';
 import { SalesHistoryPage } from './pages/SalesHistoryPage';
 import { RevenuePage } from './pages/RevenuePage';
 import { ClosingPage } from './pages/ClosingPage';
+import { NarcoticsPage } from './pages/NarcoticsPage';
 import { CommandPalette } from './components/CommandPalette';
 import { sounds } from './lib/sound';
 import { useQuery } from '@tanstack/react-query';
@@ -24,7 +25,8 @@ type Screen =
   | 'medicines'
   | 'purchases'
   | 'customers'
-  | 'stock';
+  | 'stock'
+  | 'narcotics';
 
 const NAV_ITEMS: Array<{ id: Screen; icon: string; label: string; roles: Array<'owner' | 'manager' | 'cashier'> }> = [
   { id: 'dashboard', icon: '📊', label: 'Dashboard', roles: ['owner', 'manager', 'cashier'] },
@@ -36,6 +38,7 @@ const NAV_ITEMS: Array<{ id: Screen; icon: string; label: string; roles: Array<'
   { id: 'purchases', icon: '🛒', label: 'Purchases', roles: ['owner', 'manager'] },
   { id: 'customers', icon: '👤', label: 'Customers', roles: ['owner', 'manager', 'cashier'] },
   { id: 'stock', icon: '📦', label: 'Stock', roles: ['owner', 'manager'] },
+  { id: 'narcotics', icon: '📋', label: 'Form-9 Narcotic', roles: ['owner', 'manager'] },
 ];
 
 function AlertChips() {
@@ -122,6 +125,7 @@ function AppShell() {
       case 'purchases': return <PurchasesPage />;
       case 'customers': return <CustomersPage />;
       case 'stock': return <StockPage />;
+      case 'narcotics': return <NarcoticsPage />;
     }
   };
 

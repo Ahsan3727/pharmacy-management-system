@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { fmt, fmtMmYy, daysUntil, expiryClass } from '../lib/fmt';
+import { fmt, fmtMmYy, fmtDate, fmtDateTime, daysUntil, expiryClass } from '../lib/fmt';
 import { SupplierReturnModal } from '../components/SupplierReturnModal';
+import { BarcodeLabelModal, BarcodeLabelData } from '../components/BarcodeLabelModal';
+import { CycleCountModal } from '../components/CycleCountModal';
+import { Toast, useToast } from '../components/Toast';
 
 export function StockPage() {
-  const [tab, setTab] = useState<'low' | 'expiry' | 'expired'>('expiry');
+  const [tab, setTab] = useState<'expiry' | 'low' | 'expired' | 'audits'>('expiry');
   const [returnTarget, setReturnTarget] = useState<{ batch: any; medicine: any } | null>(null);
+  const [labelTarget, setLabelTarget] = useState<BarcodeLabelData | null>(null);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const { toast, show: showToast } = useToast();
 
   const { data: lowStock, isLoading: loadingLow } = useQuery({
     queryKey: ['stock', 'low'],
@@ -26,23 +32,62 @@ export function StockPage() {
     staleTime: 60000,
   });
 
+  const { data: audits = [], isLoading: loadingAudits, refetch: refetchAudits } = useQuery({
+    queryKey: ['stock-audits'],
+    queryFn: async () => (await api.get('/stock/audits')).data.data,
+    staleTime: 60000,
+    enabled: tab === 'audits',
+  });
+
   const handleWriteOff = async (batchId: string, name: string) => {
     if (!confirm(`Write off expired stock for ${name}? This cannot be undone.`)) return;
     try {
       await api.post('/stock/writeoff', { batchId, reason: 'Expiry write-off' });
-      alert('Written off successfully');
+      showToast('✅ Expired stock written off');
     } catch (err: any) {
       alert(err.response?.data?.error?.message ?? 'Failed');
     }
   };
 
+  const handlePrintAudit = (auditId: string) => {
+    const w = window.open(`/api/v1/stock/audits/${auditId}/print`, '_blank');
+    w?.focus();
+  };
+
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-        <h3>📦 Stock Management</h3>
+    <div className="page-wrap" style={{ padding: '20px 24px', maxWidth: 1400, margin: '0 auto' }}>
+      {/* Top Header with Action Buttons */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span>📦</span> Stock & Inventory Management
+          </h2>
+          <p style={{ margin: '4px 0 0', color: 'var(--mut)', fontSize: 13 }}>
+            Monitor FEFO expiries, low stock levels, physical cycle counts, and shelf barcode labels.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn"
+            onClick={() => setAuditOpen(true)}
+            style={{
+              background: '#0284c7',
+              borderColor: '#0284c7',
+              color: '#fff',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <span>📋</span> New Cycle Count Audit
+          </button>
+        </div>
       </div>
 
-      <div className="seg" style={{ marginBottom: 14, width: 'fit-content' }}>
+      {/* Tabs */}
+      <div className="seg" style={{ marginBottom: 16, width: 'fit-content' }}>
         <button className={tab === 'expiry' ? 'on' : ''} onClick={() => setTab('expiry')}>
           Near Expiry {nearExpiry?.length > 0 && `(${nearExpiry.length})`}
         </button>
@@ -52,8 +97,12 @@ export function StockPage() {
         <button className={tab === 'expired' ? 'on' : ''} onClick={() => setTab('expired')}>
           Expired {expired?.length > 0 && `(${expired.length})`}
         </button>
+        <button className={tab === 'audits' ? 'on' : ''} onClick={() => setTab('audits')}>
+          Cycle Count Audits {audits?.length > 0 && `(${audits.length})`}
+        </button>
       </div>
 
+      {/* Tab 1: Near Expiry */}
       {tab === 'expiry' && (
         <div className="gw">
           <table className="gt">
@@ -64,7 +113,7 @@ export function StockPage() {
                 <th>Expiry</th>
                 <th className="r">Days Left</th>
                 <th className="r">Stock (units)</th>
-                <th style={{ textAlign: 'right' }}>Action</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -78,20 +127,44 @@ export function StockPage() {
                   const cls = expiryClass(days);
                   return (
                     <tr key={b._id}>
-                      <td><b>{b.medicineId?.name ?? '–'}</b><small>{b.medicineId?.genericName}</small></td>
+                      <td>
+                        <b>{b.medicineId?.name ?? '–'}</b>
+                        <small>{b.medicineId?.genericName}</small>
+                      </td>
                       <td style={{ fontFamily: 'monospace' }}>{b.batchNo}</td>
                       <td>{fmtMmYy(b.expiryDate)}</td>
                       <td className="r"><span className={`pill ${cls}`}>{days}d</span></td>
-                      <td className="r">{b.qtyOnHand}</td>
+                      <td className="r" style={{ fontWeight: 600 }}>{b.qtyOnHand}</td>
                       <td style={{ textAlign: 'right' }}>
-                        <button
-                          className="btn btn-ghost"
-                          style={{ fontSize: 11, padding: '3px 8px' }}
-                          title="Return stock to distributor"
-                          onClick={() => setReturnTarget({ batch: b, medicine: b.medicineId })}
-                        >
-                          ↩️ Return
-                        </button>
+                        <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: 11, padding: '3px 8px' }}
+                            title="Generate thermal barcode label"
+                            onClick={() =>
+                              setLabelTarget({
+                                medicineName: b.medicineId?.name,
+                                strength: b.medicineId?.strength,
+                                genericName: b.medicineId?.genericName,
+                                batchNo: b.batchNo,
+                                expiryDate: b.expiryDate,
+                                pricePerPack: b.salePricePerPack,
+                                rack: b.medicineId?.rack,
+                                barcode: b.medicineId?.barcode || b.batchNo,
+                              })
+                            }
+                          >
+                            🏷️ Label
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            style={{ fontSize: 11, padding: '3px 8px' }}
+                            title="Return stock to distributor"
+                            onClick={() => setReturnTarget({ batch: b, medicine: b.medicineId })}
+                          >
+                            ↩️ Return
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -102,6 +175,7 @@ export function StockPage() {
         </div>
       )}
 
+      {/* Tab 2: Low Stock */}
       {tab === 'low' && (
         <div className="gw">
           <table className="gt">
@@ -112,13 +186,14 @@ export function StockPage() {
                 <th className="r">Current Stock</th>
                 <th className="r">Min Stock</th>
                 <th>Rack</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {loadingLow ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading…</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading…</td></tr>
               ) : (lowStock ?? []).length === 0 ? (
-                <tr><td colSpan={5} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>✅ All medicines adequately stocked</td></tr>
+                <tr><td colSpan={6} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>✅ All medicines adequately stocked</td></tr>
               ) : (
                 (lowStock ?? []).map((item: any) => (
                   <tr key={item.medicine._id}>
@@ -128,7 +203,24 @@ export function StockPage() {
                       {item.totalStock}
                     </td>
                     <td className="r">{item.medicine.minStock}</td>
-                    <td>{item.medicine.rack ?? '–'}</td>
+                    <td><span className="pill">{item.medicine.rack ?? '–'}</span></td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ fontSize: 11, padding: '3px 8px' }}
+                        onClick={() =>
+                          setLabelTarget({
+                            medicineName: item.medicine.name,
+                            strength: item.medicine.strength,
+                            genericName: item.medicine.genericName,
+                            rack: item.medicine.rack,
+                            barcode: item.medicine.barcode,
+                          })
+                        }
+                      >
+                        🏷️ Label
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -137,6 +229,7 @@ export function StockPage() {
         </div>
       )}
 
+      {/* Tab 3: Expired */}
       {tab === 'expired' && (
         <div className="gw">
           <table className="gt">
@@ -146,7 +239,7 @@ export function StockPage() {
                 <th>Batch</th>
                 <th>Expired</th>
                 <th className="r">Stock</th>
-                <th />
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -188,15 +281,115 @@ export function StockPage() {
         </div>
       )}
 
+      {/* Tab 4: Cycle Count Audits History */}
+      {tab === 'audits' && (
+        <div className="gw">
+          <table className="gt">
+            <thead>
+              <tr>
+                <th>Audit # & Date</th>
+                <th>Scope</th>
+                <th>Audited By</th>
+                <th className="r">Batches Audited</th>
+                <th className="r">Net Variance Qty</th>
+                <th className="r">Financial Variance</th>
+                <th style={{ textAlign: 'right' }}>Voucher</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loadingAudits ? (
+                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading audits…</td></tr>
+              ) : (audits ?? []).length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: 40, color: 'var(--mut)' }}>
+                    <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
+                    <b>No Cycle Count Audits recorded yet</b>
+                    <p style={{ margin: '4px 0 0', fontSize: 12 }}>Click "New Cycle Count Audit" above to perform a physical inventory reconciliation.</p>
+                  </td>
+                </tr>
+              ) : (
+                (audits ?? []).map((a: any) => {
+                  const varVal = a.totalVarianceValue ?? 0;
+                  const varQty = a.totalVarianceQty ?? 0;
+                  return (
+                    <tr key={a._id}>
+                      <td>
+                        <b style={{ color: '#0284c7' }}>{a.auditNo}</b>
+                        <small style={{ display: 'block', color: 'var(--mut)' }}>{fmtDateTime(a.createdAt)}</small>
+                      </td>
+                      <td>
+                        <span className="pill">
+                          {a.rack ? `Rack ${a.rack}` : a.category ? a.category : 'Full Pharmacy'}
+                        </span>
+                      </td>
+                      <td>
+                        👤 {a.conductedByName}
+                      </td>
+                      <td className="r">
+                        <b>{a.items?.length ?? 0}</b> batches
+                      </td>
+                      <td className="r">
+                        <span style={{ fontWeight: 700, color: varQty === 0 ? '#16a34a' : varQty < 0 ? '#dc2626' : '#0284c7' }}>
+                          {varQty > 0 ? `+${varQty}` : varQty}
+                        </span>
+                      </td>
+                      <td className="r">
+                        <span style={{ fontWeight: 700, color: varVal === 0 ? '#16a34a' : varVal < 0 ? '#dc2626' : '#16a34a' }}>
+                          {varVal < 0 ? '-' : '+'}{fmt(Math.abs(varVal))}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button
+                          className="btn btn-ghost"
+                          style={{ fontSize: 11, padding: '3px 8px' }}
+                          onClick={() => handlePrintAudit(a._id)}
+                        >
+                          🖨️ Print
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Supplier Return Modal */}
       {returnTarget && (
         <SupplierReturnModal
           batch={returnTarget.batch}
           medicine={returnTarget.medicine}
           open={!!returnTarget}
           onClose={() => setReturnTarget(null)}
-          onSuccess={() => setReturnTarget(null)}
+          onSuccess={() => {
+            setReturnTarget(null);
+            showToast('✅ Supplier return processed');
+          }}
         />
       )}
+
+      {/* Barcode Thermal Label Modal */}
+      {labelTarget && (
+        <BarcodeLabelModal
+          open={!!labelTarget}
+          item={labelTarget}
+          onClose={() => setLabelTarget(null)}
+        />
+      )}
+
+      {/* Cycle Count Modal */}
+      <CycleCountModal
+        open={auditOpen}
+        onClose={() => setAuditOpen(false)}
+        onSuccess={(newAudit) => {
+          showToast(`✅ Cycle count ${newAudit.auditNo} reconciled`);
+          refetchAudits();
+        }}
+      />
+
+      <Toast message={toast.message} visible={toast.visible} />
     </div>
   );
 }

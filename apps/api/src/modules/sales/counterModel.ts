@@ -48,3 +48,15 @@ export async function nextDebitNoteNo(session: any): Promise<string> {
   );
   return `DN-${year}-${String(doc!.seq).padStart(6, '0')}`;
 }
+
+/** Generate next gap-free stock audit number within a MongoDB transaction */
+export async function nextAuditNo(session?: any): Promise<string> {
+  const year = new Date().getFullYear();
+  const key = `audit-${year}`;
+  const doc = await Counter.findByIdAndUpdate(
+    key,
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true, session }
+  );
+  return `AUD-${year}-${String(doc!.seq).padStart(6, '0')}`;
+}

@@ -35,6 +35,14 @@ export interface ISale extends Document {
   status: 'ok' | 'void';
   voidReason?: string;
   prescription?: string;
+  narcoticDetails?: {
+    doctorName: string;
+    doctorRegNo: string;
+    patientCnic: string;
+    patientName: string;
+    prescriptionDate?: string;
+    prescriptionSlipNo?: string;
+  };
   customerBalanceBefore?: number; // paisa
   customerBalanceAfter?: number;  // paisa
   closingId?: Types.ObjectId;
@@ -80,6 +88,14 @@ const SaleSchema = new Schema<ISale>(
     status: { type: String, enum: ['ok', 'void'], default: 'ok' },
     voidReason: String,
     prescription: String,
+    narcoticDetails: {
+      doctorName: String,
+      doctorRegNo: String,
+      patientCnic: String,
+      patientName: String,
+      prescriptionDate: String,
+      prescriptionSlipNo: String,
+    },
     customerBalanceBefore: Number,
     customerBalanceAfter: Number,
     closingId: Schema.Types.ObjectId,

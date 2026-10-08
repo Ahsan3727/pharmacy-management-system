@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { Modal, ModalHeader } from '../components/Modal';
 import { Toast, useToast } from '../components/Toast';
+import { BarcodeLabelModal, BarcodeLabelData } from '../components/BarcodeLabelModal';
 import { fmt, fmtQty, fmtMmYy, daysUntil, expiryClass } from '../lib/fmt';
 
 const CATEGORIES = [
@@ -361,6 +362,7 @@ export function MedicinesPage() {
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [coldChainOnly, setColdChainOnly] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [labelTarget, setLabelTarget] = useState<BarcodeLabelData | null>(null);
   const { toast, show: showToast } = useToast();
 
   const { data, isLoading } = useQuery({
@@ -434,13 +436,14 @@ export function MedicinesPage() {
               <th className="r">Stock on Shelf</th>
               <th className="r">Pack Price</th>
               <th>Safety Flags</th>
+              <th style={{ textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading medicine catalog…</td></tr>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>Loading medicine catalog…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>
+              <tr><td colSpan={8} style={{ textAlign: 'center', padding: 30, color: 'var(--mut)' }}>
                 {search || selectedCategory !== 'ALL' || coldChainOnly
                   ? 'No medicines match the selected filters.'
                   : 'No medicines in catalog yet. Click "+ Add Medicine & Stock" to begin!'}
@@ -532,6 +535,27 @@ export function MedicinesPage() {
                         )}
                       </div>
                     </td>
+
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ fontSize: 11, padding: '3px 8px' }}
+                        title="Generate thermal barcode label"
+                        onClick={() =>
+                          setLabelTarget({
+                            medicineName: m.name,
+                            strength: m.strength,
+                            genericName: m.genericName,
+                            pricePerPack: m.salePricePerPack,
+                            rack: m.rack,
+                            barcode: m.barcodes?.[0] || m.barcode,
+                            company: m.company,
+                          })
+                        }
+                      >
+                        🏷️ Label
+                      </button>
+                    </td>
                   </tr>
                 );
               })
@@ -541,6 +565,13 @@ export function MedicinesPage() {
       </div>
 
       <AddMedicineModal open={addOpen} onClose={() => setAddOpen(false)} />
+      {labelTarget && (
+        <BarcodeLabelModal
+          open={!!labelTarget}
+          item={labelTarget}
+          onClose={() => setLabelTarget(null)}
+        />
+      )}
       <Toast message={toast.message} visible={toast.visible} />
     </div>
   );

@@ -97,6 +97,15 @@ export function CommandPalette({ isOpen, onClose, onNavigate, userRole }: Comman
       onSelect: () => onNavigate('stock'),
     },
     {
+      id: 'narcotics',
+      category: 'Navigation',
+      title: 'Form-9 Narcotic Register',
+      subtitle: 'Controlled drug log, doctor PMDC & patient CNIC verification',
+      icon: '📋',
+      badge: 'DRAP',
+      onSelect: () => onNavigate('narcotics'),
+    },
+    {
       id: 'medicines',
       category: 'Navigation',
       title: 'Medicine Master Catalog',
