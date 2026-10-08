@@ -15,8 +15,10 @@ import customerRoutes from './modules/customers/routes';
 import supplierRoutes from './modules/suppliers/routes';
 import stockRoutes from './modules/stock/routes';
 import settingsRoutes from './modules/settings/routes';
+import { connectDB } from './config/db';
 
 export const app = express();
+app.set('trust proxy', 1);
 
 // ─── Security middleware ─────────────────────────────────────────────────────
 app.use(helmet());
@@ -33,6 +35,16 @@ app.use(cors({
   },
   credentials: true,
 }));
+
+// Serverless (Vercel): make sure MongoDB is connected before any route runs
+app.use(async (_req, _res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    next(err);
+  }
+});
 
 // ─── Body parsing ────────────────────────────────────────────────────────────
 app.use(express.json({ limit: '2mb' }));
@@ -74,3 +86,5 @@ app.use((req, res) => {
 
 // ─── Central error handler ───────────────────────────────────────────────────
 app.use(errorHandler);
+
+export default app;
