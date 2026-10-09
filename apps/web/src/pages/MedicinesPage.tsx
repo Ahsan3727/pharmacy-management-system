@@ -22,13 +22,6 @@ const CATEGORIES = [
   'General & Other',
 ];
 
-const STORAGE_OPTIONS = [
-  { value: 'room_temperature', label: '🌡️ Room Temp (15–25°C)' },
-  { value: 'cold_chain_2_8', label: '❄️ Cold Chain / Refrigerator (2–8°C)' },
-  { value: 'cool_below_20', label: '🍃 Cool Place (<20°C)' },
-  { value: 'protect_from_light', label: '🕶️ Protect from Direct Light' },
-];
-
 function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const qc = useQueryClient();
   const { toast, show } = useToast();
@@ -39,18 +32,12 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
     strength: '',
     form: 'Tablet',
     company: '',
-    category: 'General & Other',
-    storageCondition: 'room_temperature',
-    prescriptionType: 'otc',
     packSize: 10,
     packsPerBox: 10,
     looseUnit: 'tab',
     packUnit: 'strip',
     minStock: 20,
     rack: '',
-    barcodes: '',
-    isControlled: false,
-    gstRateBP: 0,
   });
 
   const [hasOpeningStock, setHasOpeningStock] = useState(true);
@@ -60,7 +47,6 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
     packs: 10,
     purchasePriceRs: '',
     salePriceRs: '',
-    mrpRs: '',
   });
 
   const [saving, setSaving] = useState(false);
@@ -72,7 +58,6 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
   // Live calculations for opening stock
   const pCost = parseFloat(stockForm.purchasePriceRs) || 0;
   const pSale = parseFloat(stockForm.salePriceRs) || 0;
-  const pMrp = parseFloat(stockForm.mrpRs) || pSale;
   const totalBaseUnits = hasOpeningStock ? (stockForm.packs || 0) * (form.packSize || 1) : 0;
   const unitCostRs = form.packSize > 0 ? pCost / form.packSize : 0;
   const unitSaleRs = form.packSize > 0 ? pSale / form.packSize : 0;
@@ -94,18 +79,17 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
       if (pSale < pCost) {
         if (!confirm('Sale price is less than purchase cost (selling at a loss). Continue?')) return;
       }
-      if (pMrp > 0 && pSale > pMrp) {
-        setError('Sale price cannot exceed MRP by law.');
-        return;
-      }
     }
 
     setSaving(true);
     try {
       const payload: any = {
         ...form,
-        isControlled: form.prescriptionType === 'controlled_narcotic',
-        barcodes: form.barcodes.split(',').map((s) => s.trim()).filter(Boolean),
+        category: 'General & Other',
+        storageCondition: 'room_temperature',
+        prescriptionType: 'otc',
+        isControlled: false,
+        barcodes: [],
       };
 
       if (hasOpeningStock) {
@@ -115,7 +99,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
           packs: Math.max(1, stockForm.packs),
           purchasePricePerPack: Math.round(pCost * 100),
           salePricePerPack: Math.round(pSale * 100),
-          mrpPerPack: Math.round(pMrp * 100),
+          mrpPerPack: Math.round(pSale * 100),
         };
       }
 
@@ -134,10 +118,10 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
     <Modal open={open} onClose={onClose} maxWidth={680}>
       <ModalHeader title="💊 Add Medicine & Stock Intake" onClose={onClose} />
       <form onSubmit={handleSave} style={{ display: 'grid', gap: 14 }}>
-        {/* Section 1: Identification */}
-        <div style={{ background: 'var(--bg-card, rgba(255,255,255,0.03))', padding: 12, borderRadius: 8, border: '1px solid var(--bd)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mut)', marginBottom: 8 }}>
-            1. Master Details & Clinical Classification
+        {/* Section 1: Medicine Information */}
+        <div style={{ background: 'var(--bg-card, rgba(255,255,255,0.03))', padding: 14, borderRadius: 8, border: '1px solid var(--bd)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mut)', marginBottom: 10 }}>
+            1. Medicine Details
           </div>
           <div className="f3">
             <label>
@@ -164,32 +148,12 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
               SHELF RACK / LOCATION
               <input value={form.rack} onChange={(e) => set('rack', e.target.value)} placeholder="Rack A-12" />
             </label>
-            <label style={{ gridColumn: 'span 2' }}>
-              THERAPEUTIC CATEGORY
-              <select value={form.category} onChange={(e) => set('category', e.target.value)}>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </label>
-            <label>
-              PRESCRIPTION SCHEDULE
-              <select value={form.prescriptionType} onChange={(e) => set('prescriptionType', e.target.value)}>
-                <option value="otc">OTC (Over the Counter)</option>
-                <option value="rx_general">Rx (Prescription Required)</option>
-                <option value="controlled_narcotic">⚠️ Schedule B/D Controlled Narcotic</option>
-              </select>
-            </label>
-            <label style={{ gridColumn: '1 / -1' }}>
-              STORAGE CONDITION & TEMPERATURE
-              <select value={form.storageCondition} onChange={(e) => set('storageCondition', e.target.value)}>
-                {STORAGE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </label>
           </div>
         </div>
 
         {/* Section 2: Packaging Hierarchy */}
-        <div style={{ background: 'var(--bg-card, rgba(255,255,255,0.03))', padding: 12, borderRadius: 8, border: '1px solid var(--bd)' }}>
-          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mut)', marginBottom: 8 }}>
+        <div style={{ background: 'var(--bg-card, rgba(255,255,255,0.03))', padding: 14, borderRadius: 8, border: '1px solid var(--bd)' }}>
+          <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--mut)', marginBottom: 10 }}>
             2. Packaging & Units of Measure (UOM)
           </div>
           <div className="f3">
@@ -217,13 +181,9 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
               MIN STOCK ALERT ({form.looseUnit}s)
               <input type="number" min={0} value={form.minStock} onChange={(e) => set('minStock', parseInt(e.target.value) || 0)} />
             </label>
-            <label>
-              BARCODE(S)
-              <input value={form.barcodes} onChange={(e) => set('barcodes', e.target.value)} placeholder="Scan or enter barcode" />
-            </label>
           </div>
           {/* Packaging Formula Badge */}
-          <div style={{ marginTop: 8, padding: '6px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: 6, fontSize: 12, color: 'var(--br, #38bdf8)' }}>
+          <div style={{ marginTop: 10, padding: '6px 10px', background: 'rgba(56, 189, 248, 0.08)', borderRadius: 6, fontSize: 12, color: 'var(--br, #38bdf8)' }}>
             📦 <b>Packaging Formula:</b> 1 Outer Box = {form.packsPerBox} {form.packUnit}s = <b>{form.packsPerBox * form.packSize} {form.looseUnit}s</b>
           </div>
         </div>
@@ -232,7 +192,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
         <div style={{
           background: hasOpeningStock ? 'rgba(34, 197, 94, 0.04)' : 'transparent',
           border: `1px solid ${hasOpeningStock ? 'rgba(34, 197, 94, 0.3)' : 'var(--bd)'}`,
-          padding: 12,
+          padding: 14,
           borderRadius: 8
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: hasOpeningStock ? 10 : 0 }}>
@@ -254,7 +214,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
           </div>
 
           {hasOpeningStock && (
-            <div style={{ display: 'grid', gap: 10, marginTop: 8 }}>
+            <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
               <div className="f3">
                 <label>
                   BATCH NO. *
@@ -307,17 +267,6 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
                     required={hasOpeningStock}
                     value={stockForm.salePriceRs}
                     onChange={(e) => setStock('salePriceRs', e.target.value)}
-                    placeholder="300.00"
-                  />
-                </label>
-                <label>
-                  PRINTED MRP / PACK (Rs)
-                  <input
-                    type="number"
-                    step="0.01"
-                    min={0}
-                    value={stockForm.mrpRs}
-                    onChange={(e) => setStock('mrpRs', e.target.value)}
                     placeholder="300.00"
                   />
                 </label>
