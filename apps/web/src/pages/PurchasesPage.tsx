@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, openAuthedHtml } from '../lib/api';
 import { Modal, ModalHeader } from '../components/Modal';
 import { Toast, useToast } from '../components/Toast';
 import { fmt, fmtDate } from '../lib/fmt';
@@ -166,9 +166,12 @@ export function PurchasesPage() {
   const purchases: any[] = data?.items ?? [];
   const debitNotes: any[] = debitData?.items ?? [];
 
-  const handlePrintDebit = (id: string) => {
-    const w = window.open(`/api/v1/returns/supplier/${id}/print`, '_blank', 'width=800,height=700');
-    w?.addEventListener('load', () => w.print());
+  const handlePrintDebit = async (id: string) => {
+    try {
+      await openAuthedHtml(`/api/v1/returns/supplier/${id}/print`, { autoPrint: true });
+    } catch {
+      alert('Failed to print debit note. Please check server connection.');
+    }
   };
 
   return (

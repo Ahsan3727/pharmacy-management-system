@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, openAuthedHtml } from '../lib/api';
 import { fmt, fmtDate, fmtDateTime } from '../lib/fmt';
 import { ReturnModal } from '../components/ReturnModal';
-import { Modal, ModalHeader } from '../components/Modal';
+import { Modal, ModalHeader, PromptModal } from '../components/Modal';
 
 export function SalesHistoryPage() {
+  const qc = useQueryClient();
   const [tab, setTab] = useState<'sales' | 'returns'>('sales');
   const [page, setPage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
@@ -13,6 +14,7 @@ export function SalesHistoryPage() {
   const [status, setStatus] = useState('');
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [returnSale, setReturnSale] = useState<any>(null);
+  const [voidTarget, setVoidTarget] = useState<any>(null);
 
   // Sales Query
   const { data: salesData, isLoading: loadingSales } = useQuery({
@@ -36,24 +38,36 @@ export function SalesHistoryPage() {
   const returns: any[] = returnsData?.items ?? [];
   const totalReturnPages = returnsData?.pages ?? 1;
 
-  const handlePrintSale = (saleId: string) => {
-    const w = window.open(`/api/v1/sales/${saleId}/print`, '_blank', 'width=380,height=600');
-    w?.addEventListener('load', () => w.print());
-  };
-
-  const handlePrintReturn = (returnId: string) => {
-    const w = window.open(`/api/v1/returns/customer/${returnId}/print`, '_blank', 'width=380,height=600');
-    w?.addEventListener('load', () => w.print());
-  };
-
-  const handleVoid = async (sale: any) => {
-    const reason = prompt(`Void reason for ${sale.invoiceNo}?`);
-    if (!reason) return;
+  const handlePrintSale = async (saleId: string) => {
     try {
-      await api.post(`/sales/${sale._id}/void`, { reason });
-      alert('Sale voided');
+      await openAuthedHtml(`/api/v1/sales/${saleId}/print`, { autoPrint: true });
+    } catch {
+      alert('Failed to print receipt. Please check server connection.');
+    }
+  };
+
+  const handlePrintReturn = async (returnId: string) => {
+    try {
+      await openAuthedHtml(`/api/v1/returns/customer/${returnId}/print`, { autoPrint: true });
+    } catch {
+      alert('Failed to print return voucher. Please check server connection.');
+    }
+  };
+
+  const handleVoid = (sale: any) => {
+    setVoidTarget(sale);
+  };
+
+  const confirmVoid = async (reason: string) => {
+    if (!voidTarget) return;
+    try {
+      await api.post(`/sales/${voidTarget._id}/void`, { reason });
+      qc.invalidateQueries({ queryKey: ['sales'] });
+      setVoidTarget(null);
+      setSelectedSale(null);
+      alert('Sale voided successfully');
     } catch (err: any) {
-      alert(err.response?.data?.error?.message ?? 'Failed');
+      alert(err.response?.data?.error?.message ?? 'Void failed');
     }
   };
 
@@ -318,6 +332,17 @@ export function SalesHistoryPage() {
           onSuccess={() => setReturnSale(null)}
         />
       )}
+
+      {/* Void Sale Prompt Modal */}
+      <PromptModal
+        open={!!voidTarget}
+        title="Void Sale"
+        message={`Enter audit reason for voiding invoice ${voidTarget?.invoiceNo}:`}
+        placeholder="e.g. Customer cancelled order / Wrong item punched"
+        confirmText="Confirm Void"
+        onConfirm={confirmVoid}
+        onClose={() => setVoidTarget(null)}
+      />
     </div>
   );
 }

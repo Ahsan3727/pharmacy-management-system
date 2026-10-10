@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuthStore } from '../store/authStore';
-import { fmt, fmtDate, fmtDateTime, daysUntil, expiryClass } from '../lib/fmt';
+import { fmt, fmtDateTime, daysUntil, expiryClass } from '../lib/fmt';
 import { fetchRevenueSummary } from '../lib/revenueApi';
 
 export function DashboardPage() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const todayIso = new Date().toISOString().slice(0, 10);
 
@@ -51,14 +53,84 @@ export function DashboardPage() {
   const udhaarGiven = todayRev?.udhaarGiven ?? 0;
   const payTotal = todayTotal || 1;
 
-  return (
-    <div className="main in" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <h3>📊 Dashboard</h3>
+  // Triage urgency calculations
+  const expiringWithin30Days = (nearExpiry ?? []).filter((b: any) => daysUntil(b.expiryDate) <= 30);
+  const lowStockCount = lowStock?.length ?? 0;
+  const customerDebtCount = customers?.length ?? 0;
+  const totalAlerts = expiringWithin30Days.length + lowStockCount + (user?.role !== 'cashier' ? customerDebtCount : 0);
 
-      {/* Top row */}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h3 style={{ margin: 0 }}>📊 Operations Dashboard</h3>
+        <span style={{ fontSize: 12, color: 'var(--mut)' }}>
+          {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+
+      {/* ─── 1. Needs Attention Triage Section (Leads Dashboard) ─── */}
+      <div className={`triage-card ${totalAlerts === 0 ? 'clear' : ''}`}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 18 }}>{totalAlerts > 0 ? '⚠️' : '✅'}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>
+              {totalAlerts > 0 ? `Needs Attention (${totalAlerts} items)` : 'All Operational Checks Clear'}
+            </span>
+          </div>
+          {totalAlerts > 0 && (
+            <span className="status-chip warn" style={{ fontSize: 10 }}>Action Required</span>
+          )}
+        </div>
+
+        {totalAlerts === 0 ? (
+          <p style={{ margin: 0, color: 'var(--mut)', fontSize: 13 }}>
+            Stock inventory levels and expiry thresholds are healthy. No pending operational blocks detected.
+          </p>
+        ) : (
+          <div className="triage-grid">
+            {expiringWithin30Days.length > 0 && (
+              <div className="triage-item" onClick={() => navigate('/stock')}>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--accent-orange)' }}>
+                    ⏳ {expiringWithin30Days.length} {expiringWithin30Days.length === 1 ? 'batch' : 'batches'}
+                  </span>
+                  <div style={{ fontSize: 11, color: 'var(--mut)' }}>Expiring within 30 days</div>
+                </div>
+                <span className="lk" style={{ fontSize: 11 }}>Review Stock ➔</span>
+              </div>
+            )}
+
+            {lowStockCount > 0 && (
+              <div className="triage-item" onClick={() => navigate('/stock')}>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--status-expired)' }}>
+                    📉 {lowStockCount} {lowStockCount === 1 ? 'item' : 'items'}
+                  </span>
+                  <div style={{ fontSize: 11, color: 'var(--mut)' }}>Below minimum stock level</div>
+                </div>
+                <span className="lk" style={{ fontSize: 11 }}>View Reorder ➔</span>
+              </div>
+            )}
+
+            {user?.role !== 'cashier' && customerDebtCount > 0 && (
+              <div className="triage-item" onClick={() => navigate('/customers')}>
+                <div>
+                  <span style={{ fontWeight: 600, color: 'var(--status-warn)' }}>
+                    📒 {customerDebtCount} {customerDebtCount === 1 ? 'customer' : 'customers'}
+                  </span>
+                  <div style={{ fontSize: 11, color: 'var(--mut)' }}>Outstanding udhaar: {fmt(totalUdhaar)}</div>
+                </div>
+                <span className="lk" style={{ fontSize: 11 }}>View Ledgers ➔</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── 2. Financial Overview Cards ─── */}
       <div className="two">
         <div className="card">
-          <small>Today's sales</small>
+          <small>Today's Sales</small>
           <div className="tot">{fmt(todayTotal)}</div>
           <small>
             {todayBills} bills · average {fmt(todayAvg)}
@@ -73,33 +145,38 @@ export function DashboardPage() {
         </div>
 
         <div className="card">
-          <small>Udhaar outstanding</small>
+          <small>Udhaar Outstanding</small>
           <div className="tot">{fmt(totalUdhaar)}</div>
-          <small>{customers?.length ?? 0} customers owe money</small>
+          <small>{customers?.length ?? 0} customers currently owe money</small>
+          <div style={{ marginTop: 12 }}>
+            <button className="btn btn-ghost" style={{ fontSize: 11, padding: '5px 10px' }} onClick={() => navigate('/customers')}>
+              Open Customer Ledgers ➔
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* KPI cards */}
+      {/* ─── 3. KPI Metrics ─── */}
       <div className="kp">
-        <div className={`k s ${lowStock && lowStock.length > 0 ? 'wn' : ''}`}>
+        <div className={`k s ${lowStock && lowStock.length > 0 ? 'wn' : ''}`} onClick={() => navigate('/stock')}>
           <small>Low Stock</small>
           <b>{lowStock?.length ?? 0}</b>
-          <small>medicines</small>
+          <small>medicines to restock</small>
         </div>
-        <div className={`k s ${nearExpiry && nearExpiry.length > 0 ? 'wn' : ''}`}>
+        <div className={`k s ${nearExpiry && nearExpiry.length > 0 ? 'wn' : ''}`} onClick={() => navigate('/stock')}>
           <small>Near Expiry</small>
           <b>{nearExpiry?.length ?? 0}</b>
-          <small>batches</small>
+          <small>batches within 90 days</small>
         </div>
         <div className="k s">
           <small>Cash Collected Today</small>
           <b>{fmt(cashPaid)}</b>
-          <small>at register</small>
+          <small>physical cash at till</small>
         </div>
         <div className="k s">
-          <small>Bills Today</small>
+          <small>Bills Generated</small>
           <b>{todayBills}</b>
-          <small>invoices</small>
+          <small>customer receipts</small>
         </div>
       </div>
 

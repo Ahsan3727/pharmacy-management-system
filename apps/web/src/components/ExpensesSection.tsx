@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ExpenseItem, EXPENSE_CATEGORIES, createExpense, deleteExpense } from '../lib/revenueApi';
 import { fmt } from '../lib/fmt';
+import { ConfirmModal } from './Modal';
 
 interface ExpensesSectionProps {
   expenses: ExpenseItem[];
@@ -24,6 +25,7 @@ export function ExpensesSection({ expenses, totalRevenue, onExpenseMutated }: Ex
   const [note, setNote] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,13 +54,15 @@ export function ExpensesSection({ expenses, totalRevenue, onExpenseMutated }: Ex
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this expense?')) return;
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await deleteExpense(id);
+      await deleteExpense(deleteTargetId);
       onExpenseMutated();
     } catch (err: any) {
       alert(err?.response?.data?.error?.message ?? 'Failed to delete expense');
+    } finally {
+      setDeleteTargetId(null);
     }
   };
 
@@ -156,7 +160,7 @@ export function ExpensesSection({ expenses, totalRevenue, onExpenseMutated }: Ex
                       <button
                         type="button"
                         className="x"
-                        onClick={() => handleDelete(item._id)}
+                        onClick={() => setDeleteTargetId(item._id)}
                         aria-label="Delete expense"
                       >
                         ×
@@ -209,6 +213,16 @@ export function ExpensesSection({ expenses, totalRevenue, onExpenseMutated }: Ex
           </p>
         )}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTargetId}
+        title="Delete Expense"
+        message="Are you sure you want to delete this recorded expense?"
+        confirmText="Delete"
+        danger
+        onConfirm={confirmDelete}
+        onClose={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

@@ -1,42 +1,110 @@
-/* HS Pharma — Design System (ported from HTML prototype) */
+/* HS Pharma — Pine & Paper Design System */
 /* Fonts: Bricolage Grotesque (headings/numbers) + Figtree (body) */
 
-/* ─── CSS Custom Properties ─────────────────────────────────────────────── */
+/* ─── CSS Custom Properties (Pine & Paper Design System) ─────────────────── */
 :root {
-  --ink: #10201a;
-  --mut: #64766e;
-  --cv:  #edf3ee;
-  --bd:  #dce6e1;
-  --gh:  #f0f5f2;
-  --hd:  #0b3b2e;
-  --br:  #0f6b50;
-  --bt:  #0f6b50;
-  --or:  #f08a24;
-  --ok:  #127a53;
-  --okb: #e1f4ea;
-  --wn:  #8f5d00;
-  --wnb: #fff2d1;
-  --er:  #b3281b;
-  --erb: #fde7e3;
-  --sel: #def1e7;
-  --sf:  #fff;
-  --sf2: #f8fbf9;
-  --sh:  0 1px 2px #0b3b2e12, 0 6px 18px #0b3b2e0d;
-  --ring:#0f6b5030;
-  color-scheme: light dark;
-}
+  /* Core Brand Tokens */
+  --pine: #0C3A2B;
+  --leaf: #1B6B4F;
+  --leaf-light: #E8F2EC;
+  --leaf-border: #9DC4B2;
+  --paper: #F4F6F2;
+  --till: #FFFDF6;
+  
+  /* Typography & Neutral Inks */
+  --ink: #111A15;
+  --ink-muted: #57685D;
+  --ink-light: #809287;
+  
+  /* Borders & Dividers */
+  --border-subtle: #DFE5DF;
+  --border-input: #7A8B81; /* 3.6:1 WCAG 2.2 AA compliant */
+  
+  /* High-Contrast Action Color */
+  --accent-orange: #C2410C; /* 5.18:1 contrast on white */
+  --accent-orange-hover: #9A3412;
+  
+  /* Multimodal Status Palette */
+  --status-ok: #1B6B4F;
+  --status-ok-bg: #E8F5EE;
+  --status-warn: #92400E;
+  --status-warn-bg: #FEF3C7;
+  --status-expiring: #B45309;
+  --status-expiring-bg: #FFFBEB;
+  --status-expired: #B91C1C;
+  --status-expired-bg: #FEE2E2;
+  --status-rx: #6B21A8;
+  --status-rx-bg: #F3E8FF;
 
-@media (prefers-color-scheme: light) {
-  :root { --cv: #edf3ee; --gh: #e6efe9; --sf2: #f6faf7; }
+  /* Backward Compatibility Aliases */
+  --hd: var(--pine);
+  --br: var(--leaf);
+  --bt: var(--leaf);
+  --cv: var(--paper);
+  --gh: #EBF0EC;
+  --sf: #FFFFFF;
+  --sf2: #F8FAF8;
+  --bd: var(--border-subtle);
+  --mut: var(--ink-muted);
+  --or: var(--accent-orange);
+  --ok: var(--status-ok);
+  --okb: var(--status-ok-bg);
+  --wn: var(--status-warn);
+  --wnb: var(--status-warn-bg);
+  --er: var(--status-expired);
+  --erb: var(--status-expired-bg);
+  --sel: #E2ECE5;
+  --sh: 0 1px 3px rgba(12, 58, 43, 0.08), 0 6px 18px rgba(12, 58, 43, 0.05);
+  --ring: rgba(27, 107, 79, 0.25);
+  color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --ink: #e6f0ec; --mut: #93a8a0; --cv: #0b1410; --bd: #26372f;
-    --gh:  #16241e; --hd: #07211a; --br: #3cc79b; --bt: #13795a;
-    --ok:  #4fd1a0; --okb:#12382b; --wn: #f1c35b; --wnb:#3a2f10;
-    --er:  #ff9a8d; --erb:#401d19; --sel:#173a2d; --sf: #121e19;
-    --sf2: #15231d; --sh: 0 1px 2px #0007; --ring:#3cc79b44;
+    --pine: #072118;
+    --leaf: #2BB384;
+    --leaf-light: #123326;
+    --leaf-border: #1E4E3B;
+    --paper: #0D1612;
+    --till: #14201A;
+    --ink: #EAF2EE;
+    --ink-muted: #95A89E;
+    --ink-light: #6A7E74;
+    --border-subtle: #24352D;
+    --border-input: #456053;
+    --accent-orange: #FF8A4C;
+    --accent-orange-hover: #FFA270;
+    
+    --status-ok: #34D399;
+    --status-ok-bg: #0F3324;
+    --status-warn: #FBBF24;
+    --status-warn-bg: #352B10;
+    --status-expiring: #FB923C;
+    --status-expiring-bg: #382410;
+    --status-expired: #F87171;
+    --status-expired-bg: #3B1616;
+    --status-rx: #C084FC;
+    --status-rx-bg: #2B163E;
+
+    --hd: #061A13;
+    --br: #2BB384;
+    --bt: #21966F;
+    --cv: #0D1612;
+    --gh: #15241E;
+    --sf: #14221C;
+    --sf2: #192A23;
+    --bd: var(--border-subtle);
+    --mut: var(--ink-muted);
+    --or: var(--accent-orange);
+    --ok: var(--status-ok);
+    --okb: var(--status-ok-bg);
+    --wn: var(--status-warn);
+    --wnb: var(--status-warn-bg);
+    --er: var(--status-expired);
+    --erb: var(--status-expired-bg);
+    --sel: #1C362A;
+    --sh: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --ring: rgba(43, 179, 132, 0.35);
   }
 }
 
@@ -268,12 +336,22 @@ input:focus-visible, select:focus-visible {
 .btn-ghost:hover { border-color: var(--br); }
 
 .btn-big {
-  background: linear-gradient(180deg, #f7a041, #e8730c);
+  background: linear-gradient(180deg, #D9531E, var(--accent-orange));
   border: 0;
   border-radius: 10px;
   padding: 12px 22px;
   font-size: 15px;
-  box-shadow: 0 4px 14px #e8730c55;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(194, 65, 12, 0.35);
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.15s;
+}
+.btn-big:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.btn-big:active {
+  transform: scale(0.98);
 }
 
 .lk {
@@ -301,7 +379,7 @@ label small { font-weight: 400; }
 input, select, textarea {
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--bd);
+  border: 1.5px solid var(--border-input);
   border-radius: 8px;
   background: var(--sf);
   font-weight: 400;
@@ -1014,4 +1092,282 @@ details summary { cursor: pointer; font-weight: 600; }
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
+
+/* ─── Pine & Paper: POS Cockpit & Pinned Till Receipt ────────────────────── */
+.pos-cockpit {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(360px, 420px);
+  gap: 14px;
+  height: 100%;
+  min-height: 0;
+  align-items: stretch;
+}
+
+@media (max-width: 999px) {
+  .pos-cockpit {
+    grid-template-columns: minmax(0, 1fr);
+    display: flex;
+    flex-direction: column;
+    height: auto;
+  }
+}
+
+.till-receipt {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  height: 100%;
+  max-height: calc(100dvh - 120px);
+  background: var(--till);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(12, 58, 43, 0.08);
+  overflow: hidden;
+  position: relative;
+}
+
+@media (max-width: 999px) {
+  .till-receipt {
+    max-height: none;
+    height: auto;
+  }
+}
+
+.receipt-header {
+  padding: 12px 16px;
+  background: rgba(12, 58, 43, 0.04);
+  border-bottom: 1.5px dashed var(--border-subtle);
+}
+
+.receipt-lines {
+  overflow-y: auto;
+  padding: 10px 14px;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.receipt-line-item {
+  padding: 8px 10px;
+  background: var(--sf);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.receipt-line-item:hover {
+  border-color: var(--leaf-border);
+}
+
+.receipt-line-item.controlled {
+  border-left: 3.5px solid var(--status-rx);
+}
+
+.receipt-totals {
+  padding: 12px 16px;
+  background: rgba(12, 58, 43, 0.03);
+  border-top: 1.5px dashed var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+}
+
+.receipt-torn-edge {
+  height: 8px;
+  background-image: radial-gradient(circle, transparent 4px, var(--till) 4px);
+  background-size: 10px 10px;
+  background-position: -5px -5px;
+}
+
+/* ─── FEFO Badge (First-to-sell) ─────────────────────────────────────────── */
+.fefo-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #FEF3C7;
+  color: #92400E;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Grouped Navigation Rail ────────────────────────────────────────────── */
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7CA897;
+  padding: 10px 14px 4px;
+  margin-top: 6px;
+  user-select: none;
+}
+
+.app.collapsed-sidebar .nav-section-title {
+  display: none;
+}
+
+/* ─── Mobile 5-Slot Bottom Tab Bar ───────────────────────────────────────── */
+.mobile-bottom-bar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    background: var(--pine);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.25);
+  }
+
+  .mobile-bottom-bar button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 4px;
+    background: none;
+    border: 0;
+    color: #9FC7B8;
+    font-size: 10.5px;
+    cursor: pointer;
+  }
+
+  .mobile-bottom-bar button.on {
+    color: #FFFFFF;
+    font-weight: 700;
+    border-top: 3px solid var(--accent-orange);
+    padding-top: 5px;
+  }
+
+  .mobile-bottom-bar button .bar-icon {
+    font-size: 18px;
+  }
+}
+
+/* ─── Floating Bill Pill for Mobile ──────────────────────────────────────── */
+.floating-bill-bar {
+  display: none;
+}
+
+@media (max-width: 999px) {
+  .floating-bill-bar {
+    display: flex;
+    position: fixed;
+    bottom: 60px;
+    left: 12px;
+    right: 12px;
+    z-index: 25;
+    background: linear-gradient(135deg, var(--pine), #1B6B4F);
+    color: #FFFFFF;
+    padding: 12px 18px;
+    border-radius: 14px;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 10px 30px rgba(12, 58, 43, 0.45);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .floating-bill-bar:active {
+    transform: scale(0.98);
+  }
+}
+
+/* ─── Multimodal Status Chips ────────────────────────────────────────────── */
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-chip.ok {
+  background: var(--status-ok-bg);
+  color: var(--status-ok);
+}
+
+.status-chip.warn {
+  background: var(--status-warn-bg);
+  color: var(--status-warn);
+}
+
+.status-chip.expiring {
+  background: var(--status-expiring-bg);
+  color: var(--status-expiring);
+}
+
+.status-chip.expired {
+  background: var(--status-expired-bg);
+  color: var(--status-expired);
+}
+
+.status-chip.rx {
+  background: var(--status-rx-bg);
+  color: var(--status-rx);
+}
+
+/* ─── Dashboard Triage Card ──────────────────────────────────────────────── */
+.triage-card {
+  background: var(--sf);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--accent-orange);
+  border-radius: 14px;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: var(--sh);
+}
+
+.triage-card.clear {
+  border-left-color: var(--status-ok);
+}
+
+.triage-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 10px;
+}
+
+.triage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--gh);
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--ink);
+  font-size: 13px;
+  transition: transform 0.1s, background 0.15s;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.triage-item:hover {
+  background: var(--leaf-light);
+  border-color: var(--leaf-border);
+  transform: translateY(-1px);
+}
+
 

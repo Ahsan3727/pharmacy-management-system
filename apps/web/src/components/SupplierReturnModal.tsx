@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, openAuthedHtml } from '../lib/api';
 import { Modal, ModalHeader } from './Modal';
 import { fmt, fmtMmYy } from '../lib/fmt';
 
@@ -83,9 +83,12 @@ export function SupplierReturnModal({ batch, medicine, open, onClose, onSuccess 
     }
   };
 
-  const handlePrint = (debitNoteId: string) => {
-    const w = window.open(`/api/v1/returns/supplier/${debitNoteId}/print`, '_blank', 'width=800,height=700');
-    w?.addEventListener('load', () => w.print());
+  const handlePrint = async (debitNoteId: string) => {
+    try {
+      await openAuthedHtml(`/api/v1/returns/supplier/${debitNoteId}/print`, { autoPrint: true });
+    } catch {
+      alert('Failed to print debit note. Please check server connection.');
+    }
   };
 
   return (

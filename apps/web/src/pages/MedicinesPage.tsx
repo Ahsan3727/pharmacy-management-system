@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
-import { Modal, ModalHeader } from '../components/Modal';
+import { Modal, ModalHeader, ConfirmModal } from '../components/Modal';
 import { Toast, useToast } from '../components/Toast';
 import { BarcodeLabelModal, BarcodeLabelData } from '../components/BarcodeLabelModal';
 import { fmt, fmtQty, fmtMmYy, daysUntil, expiryClass } from '../lib/fmt';
@@ -51,6 +51,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [lossWarningOpen, setLossWarningOpen] = useState(false);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const setStock = (k: string, v: any) => setStockForm((f) => ({ ...f, [k]: v }));
@@ -63,7 +64,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
   const unitSaleRs = form.packSize > 0 ? pSale / form.packSize : 0;
   const marginPct = pSale > 0 ? (((pSale - pCost) / pSale) * 100).toFixed(1) : '0';
 
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -77,10 +78,15 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
         return;
       }
       if (pSale < pCost) {
-        if (!confirm('Sale price is less than purchase cost (selling at a loss). Continue?')) return;
+        setLossWarningOpen(true);
+        return;
       }
     }
 
+    executeSave();
+  };
+
+  const executeSave = async () => {
     setSaving(true);
     try {
       const payload: any = {
@@ -111,6 +117,7 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
       setError(err.response?.data?.error?.message ?? 'Failed to save medicine');
     } finally {
       setSaving(false);
+      setLossWarningOpen(false);
     }
   };
 
@@ -302,6 +309,16 @@ function AddMedicineModal({ open, onClose }: { open: boolean; onClose: () => voi
           </button>
         </div>
       </form>
+
+      <ConfirmModal
+        open={lossWarningOpen}
+        title="Selling Below Cost Warning"
+        message="Sale price is less than purchase cost (selling at a financial loss). Do you want to proceed?"
+        confirmText="Proceed with Loss"
+        danger
+        onConfirm={executeSave}
+        onClose={() => setLossWarningOpen(false)}
+      />
     </Modal>
   );
 }

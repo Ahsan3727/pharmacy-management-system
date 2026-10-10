@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, openAuthedHtml } from '../lib/api';
 import { Modal, ModalHeader } from './Modal';
 import { fmt } from '../lib/fmt';
 
@@ -117,9 +117,12 @@ export function ReturnModal({ sale, open, onClose, onSuccess }: ReturnModalProps
     }
   };
 
-  const handlePrint = (returnId: string) => {
-    const w = window.open(`/api/v1/returns/customer/${returnId}/print`, '_blank', 'width=380,height=600');
-    w?.addEventListener('load', () => w.print());
+  const handlePrint = async (returnId: string) => {
+    try {
+      await openAuthedHtml(`/api/v1/returns/customer/${returnId}/print`, { autoPrint: true });
+    } catch {
+      alert('Failed to print return voucher. Please check server connection.');
+    }
   };
 
   return (

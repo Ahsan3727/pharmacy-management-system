@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { mulDiv, pct, roundToHundred } from '@hs-pharma/shared';
+import { newClientRequestId } from '../lib/fmt';
 
 interface CartItem {
   medicineId: string;
@@ -26,6 +28,8 @@ interface CartState {
   cashPaid: number;
   cardPaid: number;
   prescription: string;
+  clientRequestId: string | null;
+  ensureClientRequestId: () => string;
   addItem: (item: CartItem) => void;
   removeItem: (index: number) => void;
   updateQty: (index: number, qty: number) => void;
@@ -41,10 +45,6 @@ interface CartState {
   total: () => number;
 }
 
-const roundToHundred = (n: number) => Math.round(n / 100) * 100;
-const pct = (amount: number, bp: number) => Math.round((amount * bp) / 10000);
-const mulDiv = (a: number, b: number, c: number) => Math.round((a * b) / c);
-
 export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   customerId: null,
@@ -54,9 +54,24 @@ export const useCartStore = create<CartState>((set, get) => ({
   cashPaid: 0,
   cardPaid: 0,
   prescription: '',
+  clientRequestId: null,
+
+  ensureClientRequestId: () => {
+    let id = get().clientRequestId;
+    if (!id) {
+      id = newClientRequestId();
+      set({ clientRequestId: id });
+    }
+    return id;
+  },
 
   addItem: (item) => {
     const items = get().items;
+    let reqId = get().clientRequestId;
+    if (!reqId) {
+      reqId = newClientRequestId();
+    }
+
     // If same batch already in cart, top up qty
     const idx = items.findIndex(
       (i) => i.medicineId === item.medicineId && (i.batchId === item.batchId || !item.batchId)
@@ -67,16 +82,16 @@ export const useCartStore = create<CartState>((set, get) => ({
       const lineTotal = mulDiv(newQty, existing.packPrice, existing.packSize);
       const updated = [...items];
       updated[idx] = { ...existing, qty: newQty, lineTotal };
-      set({ items: updated });
+      set({ items: updated, clientRequestId: reqId });
     } else {
-      set({ items: [...items, item] });
+      set({ items: [...items, item], clientRequestId: reqId });
     }
   },
 
   removeItem: (index) => {
     const items = [...get().items];
     items.splice(index, 1);
-    set({ items });
+    set({ items, clientRequestId: items.length === 0 ? null : get().clientRequestId });
   },
 
   updateQty: (index, qty) => {
@@ -104,6 +119,7 @@ export const useCartStore = create<CartState>((set, get) => ({
       cashPaid: 0,
       cardPaid: 0,
       prescription: '',
+      clientRequestId: null,
     }),
 
   subtotal: () => get().items.reduce((a, i) => a + i.lineTotal, 0),

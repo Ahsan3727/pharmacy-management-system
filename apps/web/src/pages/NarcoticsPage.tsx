@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, openAuthedHtml } from '../lib/api';
 import { fmt, fmtDate, fmtDateTime } from '../lib/fmt';
 
 export function NarcoticsPage() {
@@ -26,13 +26,16 @@ export function NarcoticsPage() {
     },
   });
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const params = new URLSearchParams();
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
     const url = `/api/v1/regulatory/form9/print?${params.toString()}`;
-    const w = window.open(url, '_blank');
-    w?.focus();
+    try {
+      await openAuthedHtml(url, { autoPrint: true });
+    } catch {
+      alert('Failed to generate Form-9 register. Please check server connection.');
+    }
   };
 
   // Summary Metrics

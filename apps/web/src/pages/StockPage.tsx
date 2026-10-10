@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../lib/api';
+import { api, openAuthedHtml } from '../lib/api';
 import { fmt, fmtMmYy, fmtDate, fmtDateTime, daysUntil, expiryClass } from '../lib/fmt';
 import { SupplierReturnModal } from '../components/SupplierReturnModal';
 import { BarcodeLabelModal, BarcodeLabelData } from '../components/BarcodeLabelModal';
 import { CycleCountModal } from '../components/CycleCountModal';
+import { ConfirmModal } from '../components/Modal';
 import { Toast, useToast } from '../components/Toast';
 
 export function StockPage() {
@@ -12,6 +13,7 @@ export function StockPage() {
   const [returnTarget, setReturnTarget] = useState<{ batch: any; medicine: any } | null>(null);
   const [labelTarget, setLabelTarget] = useState<BarcodeLabelData | null>(null);
   const [auditOpen, setAuditOpen] = useState(false);
+  const [writeOffTarget, setWriteOffTarget] = useState<{ batchId: string; name: string } | null>(null);
   const { toast, show: showToast } = useToast();
 
   const { data: lowStock, isLoading: loadingLow } = useQuery({
@@ -39,19 +41,27 @@ export function StockPage() {
     enabled: tab === 'audits',
   });
 
-  const handleWriteOff = async (batchId: string, name: string) => {
-    if (!confirm(`Write off expired stock for ${name}? This cannot be undone.`)) return;
+  const handleWriteOff = (batchId: string, name: string) => {
+    setWriteOffTarget({ batchId, name });
+  };
+
+  const confirmWriteOff = async () => {
+    if (!writeOffTarget) return;
     try {
-      await api.post('/stock/writeoff', { batchId, reason: 'Expiry write-off' });
-      showToast('✅ Expired stock written off');
+      await api.post('/stock/writeoff', { batchId: writeOffTarget.batchId, reason: 'Expiry write-off' });
+      showToast(`✅ Expired stock written off for ${writeOffTarget.name}`);
+      setWriteOffTarget(null);
     } catch (err: any) {
-      alert(err.response?.data?.error?.message ?? 'Failed');
+      showToast(`❌ ${err.response?.data?.error?.message ?? 'Write-off failed'}`);
     }
   };
 
-  const handlePrintAudit = (auditId: string) => {
-    const w = window.open(`/api/v1/stock/audits/${auditId}/print`, '_blank');
-    w?.focus();
+  const handlePrintAudit = async (auditId: string) => {
+    try {
+      await openAuthedHtml(`/api/v1/stock/audits/${auditId}/print`, { autoPrint: true });
+    } catch {
+      showToast('❌ Failed to open audit print sheet');
+    }
   };
 
   return (
@@ -387,6 +397,17 @@ export function StockPage() {
           showToast(`✅ Cycle count ${newAudit.auditNo} reconciled`);
           refetchAudits();
         }}
+      />
+
+      {/* Stock Write-off Confirmation Modal */}
+      <ConfirmModal
+        open={!!writeOffTarget}
+        title="Confirm Stock Write-Off"
+        message={`Write off expired stock for "${writeOffTarget?.name}"? This action cannot be undone.`}
+        confirmText="Write Off Stock"
+        danger
+        onConfirm={confirmWriteOff}
+        onClose={() => setWriteOffTarget(null)}
       />
 
       <Toast message={toast.message} visible={toast.visible} />
